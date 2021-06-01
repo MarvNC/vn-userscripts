@@ -6,4 +6,4 @@
 
 A userscript that adds score graphs to pages on vndb.
 
-![example](https://files.catbox.moe/z873o7.png)
+![example](https://files.catbox.moe/mqju57.png)
