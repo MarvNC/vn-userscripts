@@ -10,7 +10,6 @@
 // @require     https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.3.2/chart.min.js
 // @require     https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@next/dist/chartjs-adapter-date-fns.bundle.js
 // @grant       GM_addStyle
-// @run-at      document-idle
 // ==/UserScript==
 const modalHtml = /* html */ `
 <div class="modal">
@@ -130,20 +129,23 @@ if (document.URL.match(/v\d+$/)) {
 
       votes.reverse();
       let sum = 0,
-        moving = [];
+        moving = [],
+        lastTwenty = [];
       for (let i = 0; i < votes.length; i++) {
         const vote = votes[i];
         sum += vote.vote;
         vote.avg = (sum / (i + 1)).toPrecision(sigFigs);
+
         moving.push(vote);
         console.log(moving[0].date);
         while (moving.length > 1 && moving[0].date + monthMs < vote.date) {
           moving.shift();
         }
-        console.log(moving.length);
         vote.moving = (
           moving.reduce((prev, curr) => prev + curr.vote, 0) / moving.length
         ).toPrecision(sigFigs);
+
+        vote.percent = ((i + 1) / votes.length) * 10;
       }
 
       // chart
@@ -186,8 +188,17 @@ if (document.URL.match(/v\d+$/)) {
               borderWidth: 1,
               segment: {
                 borderColor: (ctx) =>
-                  !ctx.p0.skip && !ctx.p1.skip ? 'rgba(255,0,0,0.3)' : 'rgba(0,0,0,0)',
+                  !ctx.p0.skip && !ctx.p1.skip ? 'rgba(255,0,0,0.4)' : 'rgba(0,0,0,0)',
               },
+            },
+            {
+              label: '% of Total Votes',
+              data: votes.map((vote) => {
+                return { x: vote.date, y: vote.percent };
+              }),
+              backgroundColor: 'rgba(0,0,0,0)',
+              borderColor: 'rgba(66, 219, 71, 0.2)',
+              pointRadius: 2,
             },
           ],
         },
@@ -208,6 +219,8 @@ if (document.URL.match(/v\d+$/)) {
                       context.dataset.data[context.dataIndex].release.lang +
                       ': ' +
                       context.dataset.data[context.dataIndex].release.title;
+                  } else if (context.dataset.label.startsWith('%')) {
+                    label = (context.parsed.y * 10).toPrecision(sigFigs) + '%';
                   } else {
                     label = `${context.dataset.label}: ${context.parsed.y}`;
                   }
