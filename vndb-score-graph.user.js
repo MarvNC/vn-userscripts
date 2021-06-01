@@ -3,7 +3,7 @@
 // @namespace   https://github.com/MarvNC
 // @homepageURL https://github.com/MarvNC/vndb-score-graph
 // @match       https://vndb.org/v*
-// @version     1.21
+// @version     1.22
 // @author      Marv
 // @description A userscript that adds score graphs to pages on vndb.
 // @downloadURL https://github.com/MarvNC/vndb-score-graph/raw/master/vndb-score-graph.user.js
@@ -39,6 +39,7 @@ const addCSS = /* css */ `
   margin: auto; 
   width: 85%;  
   overflow: auto;
+  background-color: white;
 }`;
 
 const votePage = (id, page) => `https://vndb.org/${id}/votes?o=d&p=${page}&s=date`;
@@ -47,6 +48,7 @@ const votesPerPage = 50;
 const sigFigs = 3;
 const dayMs = 86400000;
 const monthMs = 2629800000;
+const pointHitRadius = 10;
 
 let delayMs = 300;
 
@@ -102,9 +104,9 @@ if (document.URL.match(/v\d+$/)) {
     if (!started) {
       started = true;
 
-      const votes = await getVotes(voteCount, vnID, displayText, modal, modalContent);
+      let votes = await getVotes(voteCount, vnID, displayText, modal, modalContent);
 
-      calculateStats(votes);
+      let [voteStats, popularity] = calculateStats(votes);
 
       // chart
       modalContent.append(createElementFromHTML(chartHtml));
@@ -115,34 +117,39 @@ if (document.URL.match(/v\d+$/)) {
           datasets: [
             {
               label: 'Average',
-              data: votes.map((vote) => {
+              data: voteStats.map((vote) => {
                 return { x: vote.date, y: vote.avg };
               }),
               backgroundColor: 'rgba(107, 0, 110, 0.1)',
-              borderColor: 'rgba(107, 0, 110, 0.3)',
-              pointRadius: 2,
+              borderColor: 'rgba(107, 0, 110, 0.6)',
+              borderWidth: 2,
+              pointHitRadius: pointHitRadius,
+              pointRadius: 0,
+              tension: 0.3,
             },
             {
               label: '1 Month Average',
-              data: votes.map((vote) => {
+              data: voteStats.map((vote) => {
                 return { x: vote.date, y: vote.moving };
               }),
               backgroundColor: 'rgba(52, 186, 235, 0)',
-              borderColor: 'rgba(52, 186, 235, 0.4)',
+              borderColor: 'rgba(52, 186, 235, 0.3)',
               borderWidth: 2,
               hidden: true,
-              pointRadius: 0.5,
+              pointHitRadius: pointHitRadius,
+              pointRadius: 0,
               tension: 0.3,
             },
             {
               label: 'Last Twenty Votes',
-              data: votes.map((vote) => {
+              data: voteStats.map((vote) => {
                 return { x: vote.date, y: vote.lastTwenty };
               }),
               backgroundColor: 'rgba(255, 0, 0, 0)',
               borderColor: 'rgba(255, 0, 0, 0.3)',
               borderWidth: 2,
-              pointRadius: 0.5,
+              pointHitRadius: pointHitRadius,
+              pointRadius: 0,
               tension: 0.3,
             },
             {
@@ -150,9 +157,10 @@ if (document.URL.match(/v\d+$/)) {
               data: votes.map((vote) => {
                 return { x: vote.date, y: vote.vote, label: vote.user };
               }),
-              backgroundColor: 'rgba(0, 49, 158, 0.2)',
+              backgroundColor: 'rgba(0, 30, 97, 0.2)',
               borderColor: 'rgba(0,0,0,0)',
-              pointRadius: 2,
+              pointHitRadius: pointHitRadius,
+              pointRadius: 1.5,
             },
             {
               label: 'Releases',
@@ -165,16 +173,29 @@ if (document.URL.match(/v\d+$/)) {
                 borderColor: (ctx) =>
                   !ctx.p0.skip && !ctx.p1.skip ? 'rgba(255,0,0,0.4)' : 'rgba(0,0,0,0)',
               },
+              pointHitRadius: pointHitRadius,
+              pointRadius: 2,
             },
             {
               label: '% of Total Votes',
-              data: votes.map((vote) => {
+              data: voteStats.map((vote) => {
                 return { x: vote.date, y: vote.percent };
               }),
               backgroundColor: 'rgba(0,0,0,0)',
-              borderColor: 'rgba(66, 219, 71, 0.4)',
+              borderColor: 'rgba(52, 191, 56, 0.3)',
               borderWidth: 2,
-              pointRadius: 0.3,
+              pointHitRadius: pointHitRadius,
+              pointRadius: 0,
+            },
+            {
+              label: '2 Week Popularity',
+              data: popularity,
+              backgroundColor: 'rgba(0,0,0,0)',
+              borderColor: 'rgba(199, 194, 50, 0.4)',
+              borderWidth: 2,
+              pointHitRadius: pointHitRadius,
+              pointRadius: 0,
+              tension: 0.4,
             },
           ],
         },
@@ -197,6 +218,11 @@ if (document.URL.match(/v\d+$/)) {
                       context.dataset.data[context.dataIndex].release.title;
                   } else if (context.dataset.label.startsWith('%')) {
                     label = (context.parsed.y * 10).toPrecision(sigFigs) + '%';
+                  } else if (context.dataset.label.endsWith('Popularity')) {
+                    label =
+                      context.dataset.label +
+                      ': ' +
+                      context.dataset.data[context.dataIndex].popularity;
                   } else {
                     label = `${context.dataset.label}: ${context.parsed.y}`;
                   }
@@ -239,11 +265,8 @@ if (document.URL.match(/v\d+$/)) {
 }
 
 async function getVotes(voteCount, vnID, displayText, modal, modalContent) {
-  if (
-    GM_getValue('votes', {})[vnID] &&
-    GM_getValue('votes', {})[vnID]['updated'] + dayMs > Date.now()
-  ) {
-    return GM_getValue('votes', null)[vnID]['votes'];
+  if (GM_getValue('votes', {})[vnID]?.updated + dayMs > Date.now()) {
+    return GM_getValue('votes', null)[vnID].votes;
   }
   const votes = [];
   let last = Math.ceil(voteCount / votesPerPage);
@@ -282,30 +305,61 @@ async function getVotes(voteCount, vnID, displayText, modal, modalContent) {
   return votes;
 }
 
+/**
+ * Calculates and modifies stats for an array in place, also returns a new array of popularity.
+ * @param {*} voteStats
+ */
 function calculateStats(votes) {
-  let sum = 0,
+  let voteStats = [],
+    sum = 0,
     moving = [],
     lastTwenty = [];
   for (let i = 0; i < votes.length; i++) {
+    voteStats[i] = {};
+    voteStats[i].date = votes[i].date;
     sum += votes[i].vote;
-    votes[i].avg = (sum / (i + 1)).toPrecision(sigFigs);
+    voteStats[i].avg = (sum / (i + 1)).toPrecision(sigFigs);
 
     moving.push(votes[i]);
     while (moving.length > 1 && moving[0].date + monthMs < votes[i].date) {
       moving.shift();
     }
-    votes[i].moving = (
+    voteStats[i].moving = (
       moving.reduce((prev, curr) => prev + curr.vote, 0) / moving.length
     ).toPrecision(sigFigs);
 
     lastTwenty.push(votes[i].vote);
     if (lastTwenty.length > 20) lastTwenty.shift();
-    votes[i].lastTwenty = (
+    voteStats[i].lastTwenty = (
       lastTwenty.reduce((prev, curr) => prev + curr, 0) / lastTwenty.length
     ).toPrecision(sigFigs);
 
-    votes[i].percent = ((i + 1) / votes.length) * 10;
+    voteStats[i].percent = ((i + 1) / votes.length) * 10;
   }
+
+  let i = 0,
+    popularity = [],
+    timeStamps = [];
+  for (let epoch = votes[0].date; epoch < Date.now(); epoch += dayMs) {
+    let modified = false;
+    while (votes[i]?.date <= epoch) {
+      timeStamps.push(votes[i]?.date);
+      modified = true;
+      i++;
+    }
+    while (timeStamps[0] + dayMs * 14 < epoch) {
+      timeStamps.shift();
+      modified = true;
+    }
+    if (modified) popularity.push({ x: epoch, popularity: timeStamps.length });
+  }
+  let maxPop = Math.max(...popularity.map((pop) => pop.popularity));
+  popularity.forEach((pop) => (pop.y = ((pop.popularity / maxPop) * 10).toPrecision(sigFigs)));
+
+  // filter duplicates
+  voteStats = voteStats.filter((vote, index, arr) => vote.date != arr[index + 1]?.date);
+
+  return [voteStats, popularity];
 }
 
 function createElementFromHTML(htmlString) {
