@@ -3,7 +3,7 @@
 // @namespace   https://github.com/MarvNC
 // @homepageURL https://github.com/MarvNC/vndb-score-graph
 // @match       https://vndb.org/v*
-// @version     1.11
+// @version     1.12
 // @author      Marv
 // @description A userscript that adds score graphs to pages on vndb.
 // @downloadURL https://github.com/MarvNC/vndb-score-graph/raw/master/vndb-score-graph.user.js
@@ -36,7 +36,7 @@ const addCSS = /* css */ `
   position: relative; 
   padding: 20px; 
   margin: auto; 
-  width: 75%;  
+  width: 85%;  
   overflow: auto;
 }`;
 
