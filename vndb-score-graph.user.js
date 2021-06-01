@@ -3,7 +3,7 @@
 // @namespace   https://github.com/MarvNC
 // @homepageURL https://github.com/MarvNC/vndb-score-graph
 // @match       https://vndb.org/v*
-// @version     1.12
+// @version     1.2
 // @author      Marv
 // @description A userscript that adds score graphs to pages on vndb.
 // @downloadURL https://github.com/MarvNC/vndb-score-graph/raw/master/vndb-score-graph.user.js
@@ -68,7 +68,11 @@ if (document.URL.match(/v\d+$/)) {
     })
     .filter((rel) => rel.date);
 
-  releases.push({ date: Date.now(), title: 'Today', lang: '' });
+  releases.push({
+    date: Date.parse(new Date().toISOString().slice(0, 10)),
+    title: 'Today',
+    lang: '',
+  });
 
   const releasesData = [];
   releases.forEach((release) => {
@@ -137,12 +141,17 @@ if (document.URL.match(/v\d+$/)) {
         vote.avg = (sum / (i + 1)).toPrecision(sigFigs);
 
         moving.push(vote);
-        console.log(moving[0].date);
         while (moving.length > 1 && moving[0].date + monthMs < vote.date) {
           moving.shift();
         }
         vote.moving = (
           moving.reduce((prev, curr) => prev + curr.vote, 0) / moving.length
+        ).toPrecision(sigFigs);
+
+        lastTwenty.push(vote.vote);
+        if (lastTwenty.length > 20) lastTwenty.shift();
+        vote.lastTwenty = (
+          lastTwenty.reduce((prev, curr) => prev + curr, 0) / lastTwenty.length
         ).toPrecision(sigFigs);
 
         vote.percent = ((i + 1) / votes.length) * 10;
@@ -162,14 +171,30 @@ if (document.URL.match(/v\d+$/)) {
               }),
               backgroundColor: 'rgba(107, 0, 110, 0.1)',
               borderColor: 'rgba(107, 0, 110, 0.3)',
+              pointRadius: 2,
             },
             {
               label: '1 Month Average',
               data: votes.map((vote) => {
                 return { x: vote.date, y: vote.moving };
               }),
-              backgroundColor: 'rgba(52, 186, 235, 0.1)',
-              borderColor: 'rgba(52, 186, 235, 0.3)',
+              backgroundColor: 'rgba(52, 186, 235, 0)',
+              borderColor: 'rgba(52, 186, 235, 0.4)',
+              borderWidth: 2,
+              hidden: true,
+              pointRadius: 0.5,
+              tension: 0.3,
+            },
+            {
+              label: 'Last Twenty Votes',
+              data: votes.map((vote) => {
+                return { x: vote.date, y: vote.lastTwenty };
+              }),
+              backgroundColor: 'rgba(255, 0, 0, 0)',
+              borderColor: 'rgba(255, 0, 0, 0.3)',
+              borderWidth: 2,
+              pointRadius: 0.5,
+              tension: 0.3,
             },
             {
               label: 'Vote',
@@ -178,6 +203,7 @@ if (document.URL.match(/v\d+$/)) {
               }),
               backgroundColor: 'rgba(0, 49, 158, 0.2)',
               borderColor: 'rgba(0,0,0,0)',
+              pointRadius: 2,
             },
             {
               label: 'Releases',
@@ -197,8 +223,9 @@ if (document.URL.match(/v\d+$/)) {
                 return { x: vote.date, y: vote.percent };
               }),
               backgroundColor: 'rgba(0,0,0,0)',
-              borderColor: 'rgba(66, 219, 71, 0.2)',
-              pointRadius: 2,
+              borderColor: 'rgba(66, 219, 71, 0.4)',
+              borderWidth: 2,
+              pointRadius: 0.3,
             },
           ],
         },
@@ -206,7 +233,7 @@ if (document.URL.match(/v\d+$/)) {
           plugins: {
             title: {
               display: true,
-              text: title + ` vote scores`,
+              text: title + ': Votes Over Time',
             },
             tooltip: {
               callbacks: {
