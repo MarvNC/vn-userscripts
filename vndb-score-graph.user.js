@@ -3,13 +3,15 @@
 // @namespace   https://github.com/MarvNC
 // @homepageURL https://github.com/MarvNC/vndb-score-graph
 // @match       https://vndb.org/v*
-// @version     1.2
+// @version     1.21
 // @author      Marv
 // @description A userscript that adds score graphs to pages on vndb.
 // @downloadURL https://github.com/MarvNC/vndb-score-graph/raw/master/vndb-score-graph.user.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.3.2/chart.min.js
 // @require     https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@next/dist/chartjs-adapter-date-fns.bundle.js
 // @grant       GM_addStyle
+// @grant       GM_getValue
+// @grant       GM_setValue
 // ==/UserScript==
 const modalHtml = /* html */ `
 <div class="modal">
@@ -43,6 +45,7 @@ const votePage = (id, page) => `https://vndb.org/${id}/votes?o=d&p=${page}&s=dat
 
 const votesPerPage = 50;
 const sigFigs = 3;
+const dayMs = 86400000;
 const monthMs = 2629800000;
 
 let delayMs = 300;
@@ -99,63 +102,9 @@ if (document.URL.match(/v\d+$/)) {
     if (!started) {
       started = true;
 
-      const votes = [];
-      let last = Math.ceil(voteCount / votesPerPage);
-      for (let i = 1; i <= last; i++) {
-        displayText.innerText = `Loading page ${i} of ${last}, ${votes.length} votes grabbed`;
-        let doc = document.createElement('html');
-        doc.innerHTML = await getUrl(votePage(vnID, i));
-        if (doc.querySelector('#maincontent > div.mainbox > p')) last = true;
-        else {
-          votes.push(
-            ...[
-              ...doc
-                .querySelector('.mainbox.votelist')
-                .querySelector('tbody')
-                .querySelectorAll('tr'),
-            ].map((tr) => {
-              const vote = {};
-              vote.date = Date.parse(tr.querySelector('.tc1').innerText);
-              vote.vote = parseFloat(tr.querySelector('.tc2').innerText);
-              vote.user = tr.querySelector('.tc3').innerText;
-              return vote;
-            })
-          );
-        }
-        doc.remove();
-      }
-      displayText.remove();
-      modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
-      modal.style.paddingTop = 0;
-      modalContent.style.top = '50%';
-      modalContent.style.transform = 'translateY(-50%)';
-      modalContent.style.backgroundColor = 'white';
+      const votes = await getVotes(voteCount, vnID, displayText, modal, modalContent);
 
-      votes.reverse();
-      let sum = 0,
-        moving = [],
-        lastTwenty = [];
-      for (let i = 0; i < votes.length; i++) {
-        const vote = votes[i];
-        sum += vote.vote;
-        vote.avg = (sum / (i + 1)).toPrecision(sigFigs);
-
-        moving.push(vote);
-        while (moving.length > 1 && moving[0].date + monthMs < vote.date) {
-          moving.shift();
-        }
-        vote.moving = (
-          moving.reduce((prev, curr) => prev + curr.vote, 0) / moving.length
-        ).toPrecision(sigFigs);
-
-        lastTwenty.push(vote.vote);
-        if (lastTwenty.length > 20) lastTwenty.shift();
-        vote.lastTwenty = (
-          lastTwenty.reduce((prev, curr) => prev + curr, 0) / lastTwenty.length
-        ).toPrecision(sigFigs);
-
-        vote.percent = ((i + 1) / votes.length) * 10;
-      }
+      calculateStats(votes);
 
       // chart
       modalContent.append(createElementFromHTML(chartHtml));
@@ -287,6 +236,76 @@ if (document.URL.match(/v\d+$/)) {
       modal.style.display = 'none';
     }
   };
+}
+
+async function getVotes(voteCount, vnID, displayText, modal, modalContent) {
+  if (
+    GM_getValue('votes', {})[vnID] &&
+    GM_getValue('votes', {})[vnID]['updated'] + dayMs > Date.now()
+  ) {
+    return GM_getValue('votes', null)[vnID]['votes'];
+  }
+  const votes = [];
+  let last = Math.ceil(voteCount / votesPerPage);
+  for (let i = 1; i <= last; i++) {
+    displayText.innerText = `Loading page ${i} of ${last}, ${votes.length} votes grabbed`;
+    let doc = document.createElement('html');
+    doc.innerHTML = await getUrl(votePage(vnID, i));
+    if (doc.querySelector('#maincontent > div.mainbox > p')) last = true;
+    else {
+      votes.push(
+        ...[
+          ...doc.querySelector('.mainbox.votelist').querySelector('tbody').querySelectorAll('tr'),
+        ].map((tr) => {
+          const vote = {};
+          vote.date = Date.parse(tr.querySelector('.tc1').innerText);
+          vote.vote = parseFloat(tr.querySelector('.tc2').innerText);
+          vote.user = tr.querySelector('.tc3').innerText;
+          return vote;
+        })
+      );
+    }
+    doc.remove();
+  }
+  displayText.remove();
+  modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+  modal.style.paddingTop = 0;
+  modalContent.style.top = '50%';
+  modalContent.style.transform = 'translateY(-50%)';
+  modalContent.style.backgroundColor = 'white';
+
+  votes.reverse();
+
+  let vns = GM_getValue('votes', {});
+  vns[vnID] = { updated: Date.now(), votes: votes };
+  GM_setValue('votes', vns);
+  return votes;
+}
+
+function calculateStats(votes) {
+  let sum = 0,
+    moving = [],
+    lastTwenty = [];
+  for (let i = 0; i < votes.length; i++) {
+    sum += votes[i].vote;
+    votes[i].avg = (sum / (i + 1)).toPrecision(sigFigs);
+
+    moving.push(votes[i]);
+    while (moving.length > 1 && moving[0].date + monthMs < votes[i].date) {
+      moving.shift();
+    }
+    votes[i].moving = (
+      moving.reduce((prev, curr) => prev + curr.vote, 0) / moving.length
+    ).toPrecision(sigFigs);
+
+    lastTwenty.push(votes[i].vote);
+    if (lastTwenty.length > 20) lastTwenty.shift();
+    votes[i].lastTwenty = (
+      lastTwenty.reduce((prev, curr) => prev + curr, 0) / lastTwenty.length
+    ).toPrecision(sigFigs);
+
+    votes[i].percent = ((i + 1) / votes.length) * 10;
+  }
 }
 
 function createElementFromHTML(htmlString) {
