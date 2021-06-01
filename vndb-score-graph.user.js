@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name        VNDB Score Graph
 // @namespace   https://github.com/MarvNC
-// @homepageURL
+// @homepageURL https://github.com/MarvNC/vndb-score-graph
 // @match       https://vndb.org/v*
-// @version     1.0
+// @version     1.1
 // @author      Marv
-// @description
+// @description Adds score graphs to pages on vndb.
+// @downloadURL https://github.com/MarvNC/vndb-score-graph/raw/master/vndb-score-graph.user.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.3.2/chart.min.js
 // @require     https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@next/dist/chartjs-adapter-date-fns.bundle.js
-// @require     https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.0.1/dist/chartjs-plugin-annotation.min.js
 // @grant       GM_addStyle
 // @run-at      document-idle
 // ==/UserScript==
@@ -45,7 +45,8 @@ const addCSS = /* css */ `
 const votePage = (id, page) => `https://vndb.org/${id}/votes?o=d&p=${page}&s=date`;
 
 const votesPerPage = 50;
-const numberPrecision = 3;
+const sigFigs = 3;
+const monthMs = 2629800000;
 
 let delayMs = 300;
 
@@ -68,12 +69,18 @@ if (document.URL.match(/v\d+$/)) {
       rel.title = tr.querySelector('.tc4 a').title;
       return rel;
     })
-    .filter((rel) => rel.date)
-    .filter((rel, index, arr) => index == 0 || rel.date != arr[index - 1].date);
+    .filter((rel) => rel.date);
 
-    releases.push({date: Date.now(), title: 'Today'})
+  releases.push({ date: Date.now(), title: 'Today', lang: '' });
 
-  console.log(releases);
+  const releasesData = [];
+  releases.forEach((release) => {
+    releasesData.push(
+      { x: release.date, y: 0, release: release },
+      { x: release.date, y: 10, release: release },
+      NaN
+    );
+  });
 
   const voteStatsElem = document.querySelector('.votegraph td');
 
@@ -123,7 +130,16 @@ if (document.URL.match(/v\d+$/)) {
       for (let i = 0; i < votes.length; i++) {
         const vote = votes[i];
         sum += vote.vote;
-        vote.avg = (sum / (i + 1)).toPrecision(numberPrecision);
+        vote.avg = (sum / (i + 1)).toPrecision(sigFigs);
+        moving.push(vote);
+        console.log(moving[0].date);
+        while (moving.length > 1 && moving[0].date + monthMs < vote.date) {
+          moving.shift();
+        }
+        console.log(moving.length);
+        vote.moving = (
+          moving.reduce((prev, curr) => prev + curr.vote, 0) / moving.length
+        ).toPrecision(sigFigs);
       }
 
       // chart
@@ -142,6 +158,14 @@ if (document.URL.match(/v\d+$/)) {
               borderColor: 'rgba(107, 0, 110, 0.3)',
             },
             {
+              label: '1 Month Average',
+              data: votes.map((vote) => {
+                return { x: vote.date, y: vote.moving };
+              }),
+              backgroundColor: 'rgba(52, 186, 235, 0.1)',
+              borderColor: 'rgba(52, 186, 235, 0.3)',
+            },
+            {
               label: 'Vote',
               data: votes.map((vote) => {
                 return { x: vote.date, y: vote.vote, label: vote.user };
@@ -149,33 +173,22 @@ if (document.URL.match(/v\d+$/)) {
               backgroundColor: 'rgba(0, 49, 158, 0.2)',
               borderColor: 'rgba(0,0,0,0)',
             },
+            {
+              label: 'Releases',
+              data: releasesData,
+              backgroundColor: 'rgba(255,0,0,0.2)',
+              borderColor: 'rgba(0,0,0,0)',
+              borderDash: [5, 20],
+              borderWidth: 1,
+              segment: {
+                borderColor: (ctx) =>
+                  !ctx.p0.skip && !ctx.p1.skip ? 'rgba(255,0,0,0.3)' : 'rgba(0,0,0,0)',
+              },
+            },
           ],
         },
         options: {
           plugins: {
-            annotation: {
-              annotations: releases.map((rel) => {
-                return {
-                  type: 'line',
-                  scaleID: 'x',
-                  borderWidth: 1,
-                  borderColor: 'rgba(255,0,0,0.3)',
-                  borderDash: [5, 5],
-                  label: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.0)',
-                    color: 'rgba(0,0,0,0.4)',
-                    content: rel.title,
-                    enabled: true,
-                    font:{
-                      size: 10
-                    },
-                    position: 'end',
-                    // rotation: 90,
-                  },
-                  value: rel.date,
-                };
-              }),
-            },
             title: {
               display: true,
               text: title + ` vote scores`,
@@ -186,6 +199,11 @@ if (document.URL.match(/v\d+$/)) {
                   let label;
                   if (context.dataset.label == 'Vote') {
                     label = `${votes[context.dataIndex].user}: ${context.parsed.y}`;
+                  } else if (context.dataset.label == 'Releases') {
+                    label =
+                      context.dataset.data[context.dataIndex].release.lang +
+                      ': ' +
+                      context.dataset.data[context.dataIndex].release.title;
                   } else {
                     label = `${context.dataset.label}: ${context.parsed.y}`;
                   }
