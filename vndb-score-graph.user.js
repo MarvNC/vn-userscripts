@@ -3,9 +3,9 @@
 // @namespace   https://github.com/MarvNC
 // @homepageURL https://github.com/MarvNC/vndb-score-graph
 // @match       https://vndb.org/v*
-// @version     1.1
+// @version     1.11
 // @author      Marv
-// @description Adds score graphs to pages on vndb.
+// @description A userscript that adds score graphs to pages on vndb.
 // @downloadURL https://github.com/MarvNC/vndb-score-graph/raw/master/vndb-score-graph.user.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.3.2/chart.min.js
 // @require     https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@next/dist/chartjs-adapter-date-fns.bundle.js
@@ -30,8 +30,7 @@ const addCSS = /* css */ `
   top: 0;
   width: 100%;
   height: 100%; 
-  background-color: rgb(0, 0, 0);
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.0);
 }
 .modal-content {
   position: relative; 
@@ -39,7 +38,6 @@ const addCSS = /* css */ `
   margin: auto; 
   width: 75%;  
   overflow: auto;
-  background-color: white;
 }`;
 
 const votePage = (id, page) => `https://vndb.org/${id}/votes?o=d&p=${page}&s=date`;
@@ -124,6 +122,12 @@ if (document.URL.match(/v\d+$/)) {
         doc.remove();
       }
       displayText.remove();
+      modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+      modal.style.paddingTop = 0;
+      modalContent.style.top = '50%';
+      modalContent.style.transform = 'translateY(-50%)';
+      modalContent.style.backgroundColor = 'white';
+
       votes.reverse();
       let sum = 0,
         moving = [];
@@ -176,9 +180,9 @@ if (document.URL.match(/v\d+$/)) {
             {
               label: 'Releases',
               data: releasesData,
-              backgroundColor: 'rgba(255,0,0,0.2)',
+              backgroundColor: 'rgba(255,0,0,0.3)',
               borderColor: 'rgba(0,0,0,0)',
-              borderDash: [5, 20],
+              borderDash: [5, 10],
               borderWidth: 1,
               segment: {
                 borderColor: (ctx) =>
