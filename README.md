@@ -14,7 +14,7 @@ Also, you can click on the legends at the top of the graph to toggle visibility 
 
 ![usage](https://files.catbox.moe/u1hohw.png)
 
-![example](https://files.catbox.moe/v836nc.png)
+![example](https://files.catbox.moe/r7hsf6.png)
 
 ![releases tooltip](https://user-images.githubusercontent.com/17340496/120266378-9ce28900-c256-11eb-91fe-33aaa714e1da.png)
 
