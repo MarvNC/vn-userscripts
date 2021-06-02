@@ -3,7 +3,7 @@
 // @namespace   https://github.com/MarvNC
 // @homepageURL https://github.com/MarvNC/vndb-score-graph
 // @match       https://vndb.org/v*
-// @version     1.22
+// @version     1.23
 // @author      Marv
 // @description A userscript that adds score graphs to pages on vndb.
 // @downloadURL https://github.com/MarvNC/vndb-score-graph/raw/master/vndb-score-graph.user.js
@@ -37,9 +37,8 @@ const addCSS = /* css */ `
   position: relative; 
   padding: 20px; 
   margin: auto; 
-  width: 85%;  
+  width: 35%;  
   overflow: auto;
-  background-color: white;
 }`;
 
 const votePage = (id, page) => `https://vndb.org/${id}/votes?o=d&p=${page}&s=date`;
@@ -48,7 +47,7 @@ const votesPerPage = 50;
 const sigFigs = 3;
 const dayMs = 86400000;
 const monthMs = 2629800000;
-const pointHitRadius = 10;
+const pointHitRadius = 20;
 
 let delayMs = 300;
 
@@ -107,6 +106,14 @@ if (document.URL.match(/v\d+$/)) {
       let votes = await getVotes(voteCount, vnID, displayText, modal, modalContent);
 
       let [voteStats, popularity] = calculateStats(votes);
+
+      displayText.remove();
+      modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+      modal.style.paddingTop = 0;
+      modalContent.style.top = '50%';
+      modalContent.style.transform = 'translateY(-50%)';
+      modalContent.style.backgroundColor = 'white';
+      modalContent.style.width = '85%';
 
       // chart
       modalContent.append(createElementFromHTML(chartHtml));
@@ -264,7 +271,7 @@ if (document.URL.match(/v\d+$/)) {
   };
 }
 
-async function getVotes(voteCount, vnID, displayText, modal, modalContent) {
+async function getVotes(voteCount, vnID, displayText) {
   if (GM_getValue('votes', {})[vnID]?.updated + dayMs > Date.now()) {
     return GM_getValue('votes', null)[vnID].votes;
   }
@@ -290,12 +297,6 @@ async function getVotes(voteCount, vnID, displayText, modal, modalContent) {
     }
     doc.remove();
   }
-  displayText.remove();
-  modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
-  modal.style.paddingTop = 0;
-  modalContent.style.top = '50%';
-  modalContent.style.transform = 'translateY(-50%)';
-  modalContent.style.backgroundColor = 'white';
 
   votes.reverse();
 
