@@ -3,7 +3,7 @@
 // @namespace   https://github.com/MarvNC
 // @homepageURL https://github.com/MarvNC/vndb-score-graph
 // @match       https://vndb.org/v*
-// @version     1.23
+// @version     1.24
 // @author      Marv
 // @description A userscript that adds score graphs to pages on vndb.
 // @downloadURL https://github.com/MarvNC/vndb-score-graph/raw/master/vndb-score-graph.user.js
@@ -224,7 +224,11 @@ if (document.URL.match(/v\d+$/)) {
                       ': ' +
                       context.dataset.data[context.dataIndex].release.title;
                   } else if (context.dataset.label.startsWith('%')) {
-                    label = (context.parsed.y * 10).toPrecision(sigFigs) + '%';
+                    label =
+                      (context.parsed.y * 10).toPrecision(sigFigs) +
+                      '%, ' +
+                      (context.dataIndex + 1) +
+                      ' votes';
                   } else if (context.dataset.label.endsWith('Popularity')) {
                     label =
                       context.dataset.label +
@@ -358,7 +362,7 @@ function calculateStats(votes) {
   popularity.forEach((pop) => (pop.y = ((pop.popularity / maxPop) * 10).toPrecision(sigFigs)));
 
   // filter duplicates
-  voteStats = voteStats.filter((vote, index, arr) => vote.date != arr[index + 1]?.date);
+  // voteStats = voteStats.filter((vote, index, arr) => vote.date != arr[index + 1]?.date);
 
   return [voteStats, popularity];
 }
