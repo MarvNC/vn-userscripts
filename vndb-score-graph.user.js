@@ -3,24 +3,37 @@
 // @namespace   https://github.com/MarvNC
 // @homepageURL https://github.com/MarvNC/vndb-score-graph
 // @match       https://vndb.org/v*
-// @version     1.24
+// @version     1.25
 // @author      Marv
 // @description A userscript that adds score graphs to pages on vndb.
 // @downloadURL https://github.com/MarvNC/vndb-score-graph/raw/master/vndb-score-graph.user.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.3.2/chart.min.js
 // @require     https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@next/dist/chartjs-adapter-date-fns.bundle.js
+// @require     https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.0.1/dist/chartjs-plugin-zoom.min.js
+// @require     https://unpkg.com/tabulator-tables@4.9.3/dist/js/tabulator.min.js
+// @resource    tabulatorCSS https://unpkg.com/tabulator-tables@4.9.3/dist/css/tabulator.min.css
 // @grant       GM_addStyle
 // @grant       GM_getValue
 // @grant       GM_setValue
+// @grant       GM_getResourceText
 // ==/UserScript==
 const modalHtml = /* html */ `
 <div class="modal">
   <div class="modal-content ivview">
     <p class="displayText"></p>
+    <div></div>
+    <div>
+      <canvas id="voteChart" style="background-color:white; display:none;"></canvas>
+      <div id="votesTable"></div>
+    </div>
+    <div style="margin-top: 1rem;">
+      <a href="javascript:void(0);" id="resetZoom">Reset Zoom</a>
+      <a href="javascript:void(0);" id="graphBtn">Graph</a>
+      <a href="javascript:void(0);" id="tableBtn">Table</a>
+      <a href="javascript:void(0);"></a>
+    </div>
   </div>
 </div>`;
-
-const chartHtml = /* html */ `<canvas id="voteChart" style="background-color:white;"></canvas>`;
 
 const addCSS = /* css */ `
 .modal {
@@ -39,10 +52,15 @@ const addCSS = /* css */ `
   margin: auto; 
   width: 35%;  
   overflow: auto;
+}
+#votesTable{
+  display: none;
+  overflow: auto;
 }`;
 
 const votePage = (id, page) => `https://vndb.org/${id}/votes?o=d&p=${page}&s=date`;
 
+const dateFormat = 'yyyy-MM-dd';
 const votesPerPage = 50;
 const sigFigs = 3;
 const dayMs = 86400000;
@@ -90,6 +108,7 @@ if (document.URL.match(/v\d+$/)) {
   const voteStatsElem = document.querySelector('.votegraph td');
 
   GM_addStyle(addCSS);
+  GM_addStyle(GM_getResourceText('tabulatorCSS'));
   document.body.append(createElementFromHTML(modalHtml));
   const modal = document.querySelector('.modal');
   const displayText = document.querySelector('.displayText');
@@ -103,9 +122,11 @@ if (document.URL.match(/v\d+$/)) {
     if (!started) {
       started = true;
 
-      let votes = await getVotes(voteCount, vnID, displayText, modal, modalContent);
+      const votes = await getVotes(voteCount, vnID, displayText, modal, modalContent);
 
-      let [voteStats, popularity] = calculateStats(votes);
+      const [voteStats, popularity] = calculateStats(votes);
+
+      // done getting votes and calculating
 
       displayText.remove();
       modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
@@ -116,9 +137,11 @@ if (document.URL.match(/v\d+$/)) {
       modalContent.style.width = '85%';
 
       // chart
-      modalContent.append(createElementFromHTML(chartHtml));
-      let ctx = document.getElementById('voteChart').getContext('2d');
-      let chart = new Chart(ctx, {
+      const graphElem = document.getElementById('voteChart');
+      graphElem.style.display = 'block';
+
+      const ctx = document.getElementById('voteChart').getContext('2d');
+      const chart = new Chart(ctx, {
         type: 'line',
         data: {
           datasets: [
@@ -241,13 +264,28 @@ if (document.URL.match(/v\d+$/)) {
                 },
               },
             },
+            zoom: {
+              zoom: {
+                wheel: {
+                  enabled: true,
+                },
+                pinch: {
+                  enabled: true,
+                },
+                mode: 'xy',
+              },
+              pan: {
+                enabled: true,
+                mode: 'xy',
+              },
+            },
           },
           scales: {
             x: {
               type: 'time',
               time: {
                 unit: 'month',
-                tooltipFormat: 'yyyy-MM-dd',
+                tooltipFormat: dateFormat,
               },
               title: {
                 display: true,
@@ -264,6 +302,60 @@ if (document.URL.match(/v\d+$/)) {
             },
           },
         },
+      });
+
+      // table
+      const tableElem = document.getElementById('votesTable');
+
+      let popIndex = 0;
+      const tableData = votes.map((vote, index) => {
+        let voteObj = { ...vote, ...voteStats[index] };
+        while (popularity[popIndex].x < voteObj.date) popIndex++;
+        voteObj.popularity = popularity[popIndex].popularity;
+        return voteObj;
+      });
+
+      console.log(tableData);
+
+      document.getElementById('resetZoom').onclick = () => chart.resetZoom();
+      document.getElementById('graphBtn').onclick = () => {
+        tableElem.style.display = 'none';
+        graphElem.style.display = 'block';
+      };
+      document.getElementById('tableBtn').onclick = () => {
+        tableElem.style.display = 'block';
+        graphElem.style.display = 'none';
+      };
+
+      let tabulator = new Tabulator('#votesTable', {
+        height: '40rem',
+        width: '40rem',
+        data: tableData,
+        layout: 'fitColumns',
+        clipboard: true,
+        columns: [
+          {
+            title: 'Date',
+            field: 'date',
+            sorter: 'number',
+            formatter: (cell) => {
+              return new Date(cell.getValue()).toISOString().slice(0, 10);
+            },
+          },
+          { title: 'User', field: 'user', sorter: 'string' },
+          { title: 'Vote', field: 'vote', sorter: 'number' },
+          { title: 'Average', field: 'avg' },
+          { title: 'Last 20 Votes', field: 'lastTwenty' },
+          { title: '1 Month Average', field: 'moving' },
+          { title: '2 Week Popularity', field: 'popularity' },
+          {
+            title: '% of Total Votes',
+            field: 'percent',
+            formatter: (cell) => {
+              return (cell.getValue() * 10).toPrecision(sigFigs) + '%';
+            },
+          },
+        ],
       });
     }
   };
@@ -345,6 +437,7 @@ function calculateStats(votes) {
   let i = 0,
     popularity = [],
     timeStamps = [];
+  // for every day after the initial vote, add a timestamp and set popularity
   for (let epoch = votes[0].date; epoch < Date.now(); epoch += dayMs) {
     let modified = false;
     while (votes[i]?.date <= epoch) {
