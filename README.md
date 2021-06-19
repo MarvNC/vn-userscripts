@@ -18,4 +18,6 @@ This script works on `vndb.org/v*` pages for visual novel entries, where you can
 
 ![example](https://files.catbox.moe/l0yz2m.png)
 
+![table](https://files.catbox.moe/lstzvd.png)
+
 ![releases tooltip](https://user-images.githubusercontent.com/17340496/120266378-9ce28900-c256-11eb-91fe-33aaa714e1da.png)
