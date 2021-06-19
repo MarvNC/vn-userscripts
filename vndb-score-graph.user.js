@@ -3,7 +3,7 @@
 // @namespace   https://github.com/MarvNC
 // @homepageURL https://github.com/MarvNC/vndb-score-graph
 // @match       https://vndb.org/v*
-// @version     1.25
+// @version     1.26
 // @author      Marv
 // @description A userscript that adds score graphs to pages on vndb.
 // @downloadURL https://github.com/MarvNC/vndb-score-graph/raw/master/vndb-score-graph.user.js
@@ -26,7 +26,7 @@ const modalHtml = /* html */ `
       <canvas id="voteChart" style="background-color:white; display:none;"></canvas>
       <div id="votesTable"></div>
     </div>
-    <div style="margin-top: 1rem;">
+    <div id="graphNav" style="margin-top: 1rem; display:none;">
       <a href="javascript:void(0);" id="resetZoom">Reset Zoom</a>
       <a href="javascript:void(0);" id="graphBtn">Graph</a>
       <a href="javascript:void(0);" id="tableBtn">Table</a>
@@ -55,7 +55,9 @@ const addCSS = /* css */ `
 }
 #votesTable{
   display: none;
-  overflow: auto;
+  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: hidden;
 }`;
 
 const votePage = (id, page) => `https://vndb.org/${id}/votes?o=d&p=${page}&s=date`;
@@ -304,6 +306,10 @@ if (document.URL.match(/v\d+(#main)?$/)) {
         },
       });
 
+      // nav
+      const graphNav = document.getElementById('graphNav');
+      graphNav.style.display = 'flex';
+
       // table
       const tableElem = document.getElementById('votesTable');
 
@@ -315,8 +321,6 @@ if (document.URL.match(/v\d+(#main)?$/)) {
         return voteObj;
       });
 
-      console.log(tableData);
-
       document.getElementById('resetZoom').onclick = () => chart.resetZoom();
       document.getElementById('graphBtn').onclick = () => {
         tableElem.style.display = 'none';
@@ -327,8 +331,8 @@ if (document.URL.match(/v\d+(#main)?$/)) {
         graphElem.style.display = 'none';
       };
 
-      let tabulator = new Tabulator('#votesTable', {
-        height: '40rem',
+      const tabulator = new Tabulator('#votesTable', {
+        height: '85vh',
         data: tableData,
         layout: 'fitColumns',
         clipboard: true,
