@@ -70,7 +70,7 @@ const pointHitRadius = 20;
 let delayMs = 300;
 
 // only on main page
-if (document.URL.match(/v\d+$/)) {
+if (document.URL.match(/v\d+(#main)?$/)) {
   const title = document.querySelector('#maincontent > div > h1').innerText;
   const vnID = document.URL.match(/v\d+/)[0];
   const voteCount = parseInt(
@@ -329,7 +329,6 @@ if (document.URL.match(/v\d+$/)) {
 
       let tabulator = new Tabulator('#votesTable', {
         height: '40rem',
-        width: '40rem',
         data: tableData,
         layout: 'fitColumns',
         clipboard: true,
