@@ -3,7 +3,7 @@
 // @namespace   https://github.com/MarvNC
 // @homepageURL https://github.com/MarvNC/vndb-score-graph
 // @match       https://vndb.org/v*
-// @version     1.26
+// @version     1.27
 // @author      Marv
 // @description A userscript that adds score graphs to pages on vndb.
 // @downloadURL https://github.com/MarvNC/vndb-score-graph/raw/master/vndb-score-graph.user.js
@@ -68,6 +68,8 @@ const sigFigs = 3;
 const dayMs = 86400000;
 const monthMs = 2629800000;
 const pointHitRadius = 20;
+const bayesianWeight = 52.2406;
+const bayesianMean = 6.25;
 
 let delayMs = 300;
 
@@ -152,8 +154,18 @@ if (document.URL.match(/v\d+(#main)?$/)) {
               data: voteStats.map((vote) => {
                 return { x: vote.date, y: vote.avg };
               }),
-              backgroundColor: 'rgba(107, 0, 110, 0.1)',
               borderColor: 'rgba(107, 0, 110, 0.6)',
+              borderWidth: 2,
+              pointHitRadius: pointHitRadius,
+              pointRadius: 0,
+              tension: 0.3,
+            },
+            {
+              label: 'Bayesian Rating',
+              data: voteStats.map((vote) => {
+                return { x: vote.date, y: vote.bayesian };
+              }),
+              borderColor: 'rgba(23, 3, 252, 0.6)',
               borderWidth: 2,
               pointHitRadius: pointHitRadius,
               pointRadius: 0,
@@ -164,7 +176,6 @@ if (document.URL.match(/v\d+(#main)?$/)) {
               data: voteStats.map((vote) => {
                 return { x: vote.date, y: vote.moving };
               }),
-              backgroundColor: 'rgba(52, 186, 235, 0)',
               borderColor: 'rgba(52, 186, 235, 0.3)',
               borderWidth: 2,
               hidden: true,
@@ -177,7 +188,6 @@ if (document.URL.match(/v\d+(#main)?$/)) {
               data: voteStats.map((vote) => {
                 return { x: vote.date, y: vote.lastTwenty };
               }),
-              backgroundColor: 'rgba(255, 0, 0, 0)',
               borderColor: 'rgba(255, 0, 0, 0.3)',
               borderWidth: 2,
               pointHitRadius: pointHitRadius,
@@ -216,6 +226,7 @@ if (document.URL.match(/v\d+(#main)?$/)) {
               backgroundColor: 'rgba(0,0,0,0)',
               borderColor: 'rgba(52, 191, 56, 0.3)',
               borderWidth: 2,
+              hidden: true,
               pointHitRadius: pointHitRadius,
               pointRadius: 0,
             },
@@ -348,6 +359,7 @@ if (document.URL.match(/v\d+(#main)?$/)) {
           { title: 'User', field: 'user', sorter: 'string' },
           { title: 'Vote', field: 'vote', sorter: 'number' },
           { title: 'Average', field: 'avg' },
+          { title: 'Bayesian Rating', field: 'bayesian' },
           { title: 'Last 20 Votes', field: 'lastTwenty' },
           { title: '1 Month Average', field: 'moving' },
           { title: '2 Week Popularity', field: 'popularity' },
@@ -419,6 +431,10 @@ function calculateStats(votes) {
     voteStats[i].date = votes[i].date;
     sum += votes[i].vote;
     voteStats[i].avg = (sum / (i + 1)).toPrecision(sigFigs);
+    voteStats[i].bayesian = (
+      (sum + bayesianMean * bayesianWeight) /
+      (i + 1 + bayesianWeight)
+    ).toPrecision(sigFigs);
 
     moving.push(votes[i]);
     while (moving.length > 1 && moving[0].date + monthMs < votes[i].date) {
