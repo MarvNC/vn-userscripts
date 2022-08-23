@@ -9,7 +9,7 @@ I recommend using [Violentmonkey](https://violentmonkey.github.io/) to install u
 
 ## vndb Links and Release Dates
 
-**[Install](https://github.com/MarvNC/vn-userscripts/raw/master/vndb-score-graph.user.js)**
+**[Install](https://github.com/MarvNC/vn-userscripts/raw/master/vndb-official-stats.user.js)**
 
 A userscript that adds official links and release dates to the main infobox on vndb entries.
 
@@ -31,10 +31,10 @@ This script works on `vndb.org/v*` pages for visual novel entries, where you can
 
 ![usage](images/score-graphs/usage.png)
 
-<details>
-  <summary>Reveal example images</summary>
-
 ![example](images/score-graphs/example.png)
+
+<details>
+  <summary>Reveal more images</summary>
 
 ![table](images/score-graphs/table.png)
 
@@ -44,7 +44,7 @@ This script works on `vndb.org/v*` pages for visual novel entries, where you can
 
 ## Seiya Saiga Spoilers
 
-**[Install](https://github.com/MarvNC/vn-userscripts/raw/master/vndb-score-graph.user.js)**
+**[Install](https://github.com/MarvNC/vn-userscripts/raw/master/seiya-saiga-spoilers.user.js)**
 
 A userscript that hides choices on seiya-saiga behind clickable spoiler bars until checked.
 
