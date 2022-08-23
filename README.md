@@ -23,19 +23,24 @@ A userscript that adds score graphs to pages on [vndb](http://vndb.org/).
 
 ### Usage
 
-This script works on `vndb.org/v*` pages for visual novel entries, where you can click on a link next to the vote stats to display the graph. It isn't entirely historically accurate because people can change their VNDB votes and if that happens the original vote wouldn't show up in the vote history.
+This script works on `vndb.org/v*` pages for visual novel entries, where you can click on a link next to the vote stats to display a graph of the score history. It isn't historically accurate because people can change their VNDB votes retroactively, and because the vndb weighted score algorithm changes over time based on overall database averages.
 
 - Click on the legends at the top of the graph to toggle visibility of that dataset.
-- You can zoom in the graph using scroll.
+- You can zoom in the graph using the scroll wheel.
 - Hit `ctrl+c` while focused on the table to copy its contents.
 
 ![usage](images/score-graphs/usage.png)
+
+<details>
+  <summary>Reveal example images</summary>
 
 ![example](images/score-graphs/example.png)
 
 ![table](images/score-graphs/table.png)
 
 ![releases tooltip](images/score-graphs/releases%20tooltip.png)
+
+</details>
 
 ## Seiya Saiga Spoilers
 
