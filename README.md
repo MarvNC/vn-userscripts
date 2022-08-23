@@ -1,12 +1,27 @@
-### [Install](https://github.com/MarvNC/vndb-score-graph/raw/master/vndb-score-graph.user.js)
+# VN(db) Userscripts <!-- omit in toc -->
 
-(I recommend using [Violentmonkey](https://violentmonkey.github.io/))
+I recommend using [Violentmonkey](https://violentmonkey.github.io/) to install userscripts.
 
-# vndb-score-graph
+- [vndb Links and Release Dates](#vndb-links-and-release-dates)
+- [vndb Score Graph](#vndb-score-graph)
+  - [Usage](#usage)
+- [Seiya Saiga Spoilers](#seiya-saiga-spoilers)
 
-A userscript that adds score graphs to pages on vndb.
+## vndb Links and Release Dates
 
-## Usage
+**[Install](https://github.com/MarvNC/vn-userscripts/raw/master/vndb-score-graph.user.js)**
+
+A userscript that adds official links and release dates to the main infobox on vndb entries.
+
+![](images/chrome_%E3%83%8F%E3%83%9F%E3%83%80%E3%82%B7%E3%82%AF%E3%83%AA%E3%82%A8%E3%82%A4%E3%83%86%E3%82%A3%E3%83%96__vndb_-_httpsvndb.org_-_Google_Ch_2022-08-22_19-27-22.png)
+
+## vndb Score Graph
+
+**[Install](https://github.com/MarvNC/vn-userscripts/raw/master/vndb-score-graph.user.js)**
+
+A userscript that adds score graphs to pages on [vndb](http://vndb.org/).
+
+### Usage
 
 This script works on `vndb.org/v*` pages for visual novel entries, where you can click on a link next to the vote stats to display the graph. It isn't entirely historically accurate because people can change their VNDB votes and if that happens the original vote wouldn't show up in the vote history.
 
@@ -14,10 +29,18 @@ This script works on `vndb.org/v*` pages for visual novel entries, where you can
 - You can zoom in the graph using scroll.
 - Hit `ctrl+c` while focused on the table to copy its contents.
 
-![usage](https://files.catbox.moe/u1hohw.png)
+![usage](images/score-graphs/usage.png)
 
-![example](https://files.catbox.moe/l0yz2m.png)
+![example](images/score-graphs/example.png)
 
-![table](https://files.catbox.moe/lstzvd.png)
+![table](images/score-graphs/table.png)
 
-![releases tooltip](https://user-images.githubusercontent.com/17340496/120266378-9ce28900-c256-11eb-91fe-33aaa714e1da.png)
+![releases tooltip](images/score-graphs/releases%20tooltip.png)
+
+## Seiya Saiga Spoilers
+
+**[Install](https://github.com/MarvNC/vn-userscripts/raw/master/vndb-score-graph.user.js)**
+
+A userscript that hides choices on seiya-saiga behind clickable spoiler bars until checked.
+
+![](images/2022-08-22_19-32-54.gif)

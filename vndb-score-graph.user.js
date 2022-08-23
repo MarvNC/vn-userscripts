@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name        VNDB Score Graph
 // @namespace   https://github.com/MarvNC
-// @homepageURL https://github.com/MarvNC/vndb-score-graph
+// @homepageURL https://github.com/MarvNC/vn-userscripts
 // @match       https://vndb.org/v*
 // @version     1.27
 // @author      Marv
 // @description A userscript that adds score graphs to pages on vndb.
-// @downloadURL https://github.com/MarvNC/vndb-score-graph/raw/master/vndb-score-graph.user.js
+// @downloadURL https://github.com/MarvNC/vn-userscripts/raw/master/vndb-score-graph.user.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.3.2/chart.min.js
 // @require     https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@next/dist/chartjs-adapter-date-fns.bundle.js
 // @require     https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.0.1/dist/chartjs-plugin-zoom.min.js
