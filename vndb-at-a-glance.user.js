@@ -3,12 +3,14 @@
 // @homepageURL https://github.com/MarvNC/vn-userscripts
 // @match       https://vndb.org/s*
 // @match       https://vndb.org/p*
-// @version     1.0
+// @version     1.1
 // @author      Marv
 // @description Displays known VNs at a glance on staff and company pages.
 // @grant       GM_getValue
 // @grant       GM_setValue
 // ==/UserScript==
+
+// TODO: add default labels storage
 
 const listExportUrl = (id) => `https://vndb.org/${id}/list-export/xml`;
 
@@ -16,17 +18,20 @@ const defaultCheckedLabels = ['Playing', 'Finished', 'Stalled', 'Dropped', 'Wish
 const defaultLabels = [...defaultCheckedLabels, 'Blacklist'];
 const ignoreLabels = ['Voted'];
 
+const labelFiltersHTML = /* html */ `
+<p class="labelfilters">
+  <span class="linkradio"></span>
+  <br>
+  <span class="linkradio theSecond"></span>
+</p>`;
+
 const onListText = (onListCount) => `On List (${onListCount})`;
-const onListTableHTML = /* html */ `
+const staffPageTableHTML = /* html */ `
 <div id="onlist">
   <h1 class="boxtitle"></h1>
 
   <div class="mainbox browse staffroles">
-    <p class="labelfilters">
-      <span class="linkradio"></span>
-      <br>
-      <span class="linkradio theSecond"></span>
-    </p>
+    ${labelFiltersHTML}
     <table class="stripe">
       <thead>
         <tr>
@@ -45,13 +50,69 @@ const onListTableHTML = /* html */ `
 </div>
 `;
 
+const prodPageTableHTML = /* html */ `
+<div id="onlist">
+  <div class="mainbox">
+    <h1></h1>
+    ${labelFiltersHTML}
+    <table class="releases">
+      <br>
+      <tbody>
+      </tbody>
+    </table>
+  </div>
+</div>
+`;
+
+const vnPageHTML = /* html */ `
+<div class="mainbox">
+  <h1></h1>
+  ${labelFiltersHTML}
+  <br>
+  <ul class="prodvns">
+  </ul>
+</div>`;
+
+const type = {
+  staff: {
+    releaseElem: 'tr',
+    insertAfterSelector: '.mainbox.staffpage',
+    tableHTML: staffPageTableHTML,
+    insertVNsSelector: '.staffroles tbody',
+  },
+  prodReleases: {
+    releaseElem: 'tr',
+    insertAfterSelector: '#maincontent > .mainbox',
+    tableHTML: prodPageTableHTML,
+    insertVNsSelector: '.releases tbody',
+  },
+  prodVNs: {
+    releaseElem: 'li',
+    insertAfterSelector: '#maincontent > .mainbox',
+    tableHTML: vnPageHTML,
+    insertVNsSelector: 'ul.prodvns',
+  },
+};
+
 (async function () {
+  let currentPageType = null;
+  const slug = window.location.pathname.replace('/', '');
+  if (slug.startsWith('s')) {
+    currentPageType = type.staff;
+  } else if (slug.startsWith('p')) {
+    if (slug.endsWith('vn')) {
+      currentPageType = type.prodVNs;
+    } else {
+      currentPageType = type.prodReleases;
+    }
+  }
+
   const listLabels = await getListLabels();
-  const onListVNs = getStaffPageOnList();
+  const onListVNs = getPageOnList(currentPageType);
 
-  const insertAfterElem = document.querySelector('.mainbox.staffpage');
+  const insertAfterElem = document.querySelector(currentPageType.insertAfterSelector);
 
-  const onListTable = createOnListTable(onListVNs, listLabels);
+  const onListTable = createOnListTable(onListVNs, listLabels, currentPageType);
 
   insertAfter(onListTable, insertAfterElem);
 })();
@@ -62,8 +123,8 @@ const onListTableHTML = /* html */ `
  * @param {array} listLabels
  * @returns on list table element
  */
-function createOnListTable(onList, listLabels) {
-  const onListTable = createElem(onListTableHTML);
+function createOnListTable(onList, listLabels, currentPageType) {
+  const onListTable = createElem(currentPageType.tableHTML);
 
   // two rows, first consists of default labels
   const listLabelsDiv = onListTable.querySelector('.linkradio');
@@ -92,7 +153,7 @@ function createOnListTable(onList, listLabels) {
   listLabelsDiv.removeChild(listLabelsDiv.lastChild);
   secondListLabelsDiv.removeChild(secondListLabelsDiv.lastChild);
 
-  const tbody = onListTable.querySelector('.staffroles tbody');
+  const tbody = onListTable.querySelector(currentPageType.insertVNsSelector);
   for (const vn of onList) {
     tbody.appendChild(vn.tableRow);
   }
@@ -125,13 +186,13 @@ function updateTable(table, onList) {
  * Gets the user's known VNs on a staff page.
  * @returns {*} An array of VNs on the logged in user's list.
  */
-function getStaffPageOnList() {
+function getPageOnList(currentPageType) {
   const onListIcons = [...document.getElementsByClassName('liststatus_icon')].filter(
     (elem) => elem.title !== 'Add to list'
   );
 
   const onList = onListIcons.map((elem) => ({
-    tableRow: elem.closest('tr').cloneNode(true),
+    tableRow: elem.closest(currentPageType.releaseElem).cloneNode(true),
     labels: elem.title.split(', '),
   }));
 
