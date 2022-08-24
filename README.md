@@ -20,7 +20,7 @@ A userscript that adds official links and release dates to the main infobox on v
 
 **[Install](https://github.com/MarvNC/vn-userscripts/raw/master/vndb-at-a-glance.user.js)**
 
-A userscript that adds a table at the top of staff pages showing the VNs on your list at a glance, with toggleable options to show different list labels.
+A userscript that adds a table at the top of staff and producer pages showing the VNs on your list at a glance, with toggleable options to show different list labels.
 
 ![](images/2022-08-23_18-12-15.gif)
 
