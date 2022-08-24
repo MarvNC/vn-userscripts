@@ -4,7 +4,7 @@
 // @homepageURL https://github.com/MarvNC/vn-userscripts
 // @match       https://vndb.org/v*
 // @grant       none
-// @version     1.0
+// @version     1.01
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -15,20 +15,22 @@ const vnIdRegex = /^\/(v\d+)/;
 (async function () {
   const currentURL = new URL(document.URL);
   let linksElem, releasesElem;
+  let allLinks, allReleases;
 
-  // if on main tab, get info with doc, otherwise fetch main page
+  // if on main tab, get info with existing doc, otherwise fetch main page
   if (currentURL.pathname.match(pathRegex)) {
-    const { allLinks, allReleases } = getLangInfo(document);
-    ({ linksElem, releasesElem } = makeHtmlBox(allLinks, allReleases));
+    ({ allLinks, allReleases } = getLangInfo(document));
   } else {
     const vnID = currentURL.pathname.match(vnIdRegex)[1];
     const vnURL = `https://vndb.org/${vnID}`;
     console.log(`Fetching ${vnURL}`);
-    const { allLinks, allReleases } = await fetch(vnURL)
+    ({ allLinks, allReleases } = await fetch(vnURL)
       .then((res) => res.text())
-      .then((text) => getLangInfo(new DOMParser().parseFromString(text, 'text/html')));
-    ({ linksElem, releasesElem } = makeHtmlBox(allLinks, allReleases));
+      .then((text) => getLangInfo(new DOMParser().parseFromString(text, 'text/html'))));
   }
+
+  ({ linksElem, releasesElem } = makeHtmlBox(allLinks, allReleases));
+
   const tbody = document.querySelector('.mainbox .vndetails tbody');
 
   const firstHeader = tbody.querySelector('tr.nostripe');
@@ -56,9 +58,10 @@ function getLangInfo(document) {
     const info = { lang, links: new Set() };
 
     for (const release of releases) {
+      const grayedout = release.querySelector('b.grayedout')?.textContent ?? '';
       // exclude unofficial/mtl
       if (
-        !release.innerHTML.match(/unofficial|patch|machine translation/) &&
+        !grayedout.match(/unofficial|patch|machine translation/) &&
         !release.querySelector('tr')?.classList?.contains('mtl') &&
         !release?.classList?.contains('mtl')
       ) {
