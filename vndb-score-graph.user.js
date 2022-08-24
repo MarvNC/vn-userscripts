@@ -3,7 +3,7 @@
 // @namespace   https://github.com/MarvNC
 // @homepageURL https://github.com/MarvNC/vn-userscripts
 // @match       https://vndb.org/v*
-// @version     1.27
+// @version     1.28
 // @author      Marv
 // @description A userscript that adds score graphs to pages on vndb.
 // @downloadURL https://github.com/MarvNC/vn-userscripts/raw/master/vndb-score-graph.user.js
@@ -68,8 +68,10 @@ const sigFigs = 3;
 const dayMs = 86400000;
 const monthMs = 2629800000;
 const pointHitRadius = 20;
-const bayesianWeight = 52.2406;
-const bayesianMean = 6.25;
+
+// get values: https://query.vndb.org/query-table/0468ada0-5240-4e93-a98f-09777a7873de
+const bayesianWeight = 56;
+const bayesianMean = 6.19;
 
 let delayMs = 300;
 
