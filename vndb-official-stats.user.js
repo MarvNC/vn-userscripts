@@ -4,7 +4,7 @@
 // @homepageURL https://github.com/MarvNC/vn-userscripts
 // @match       https://vndb.org/v*
 // @grant       none
-// @version     1.01
+// @version     1.1
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -138,8 +138,12 @@ function makeHtmlBox(allLinks, allReleases) {
   }
 
   const linksElem = document.createElement('tr');
-  linksElem.innerHTML = `<td>Official Links</td><td>${linksHTML}</td>`;
+  if (allLinks.size > 0) {
+    linksElem.innerHTML = `<td>Official Links</td><td>${linksHTML}</td>`;
+  }
   const releasesElem = document.createElement('tr');
-  releasesElem.innerHTML = `<td>Release Date</td><td>${releasesHTML}</td>`;
+  if (allReleases.size > 0) {
+    releasesElem.innerHTML = `<td>Release Date</td><td>${releasesHTML}</td>`;
+  }
   return { linksElem, releasesElem };
 }
