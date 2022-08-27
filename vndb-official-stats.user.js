@@ -4,7 +4,7 @@
 // @homepageURL https://github.com/MarvNC/vn-userscripts
 // @match       https://vndb.org/v*
 // @grant       none
-// @version     1.1
+// @version     1.11
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -88,7 +88,7 @@ function getLangInfo(document) {
       // clean and shorten link
       try {
         const url = new URL(link);
-        let displayLink = url.hostname + url.pathname + url.search;
+        let displayLink = url.hostname + url.pathname + url.search + url.hash;
         displayLink = displayLink.replace(/\/$/, '');
         displayLink = displayLink.replace(/^www./, '');
         if (displayLink.length > 53) {
