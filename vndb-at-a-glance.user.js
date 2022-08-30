@@ -3,7 +3,7 @@
 // @homepageURL https://github.com/MarvNC/vn-userscripts
 // @match       https://vndb.org/s*
 // @match       https://vndb.org/p*
-// @version     1.1
+// @version     1.11
 // @author      Marv
 // @description Displays known VNs at a glance on staff and company pages.
 // @grant       GM_getValue
@@ -26,6 +26,7 @@ const labelFiltersHTML = /* html */ `
 </p>`;
 
 const onListText = (onListCount) => `On List (${onListCount})`;
+
 const staffPageTableHTML = /* html */ `
 <div id="onlist">
   <h1 class="boxtitle"></h1>
@@ -100,10 +101,13 @@ const type = {
   if (slug.startsWith('s')) {
     currentPageType = type.staff;
   } else if (slug.startsWith('p')) {
-    if (slug.endsWith('vn')) {
+    const tabSelectedText = document.querySelectorAll('li.tabselected')[1]?.textContent;
+    if (tabSelectedText === 'Releases') {
+      currentPageType = type.prodReleases;
+    } else if (tabSelectedText === 'Visual Novels') {
       currentPageType = type.prodVNs;
     } else {
-      currentPageType = type.prodReleases;
+      throw new Error('Unknown page type');
     }
   }
 
