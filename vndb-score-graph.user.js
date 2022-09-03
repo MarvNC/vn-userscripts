@@ -3,7 +3,7 @@
 // @namespace   https://github.com/MarvNC
 // @homepageURL https://github.com/MarvNC/vn-userscripts
 // @match       https://vndb.org/v*
-// @version     1.28
+// @version     1.29
 // @author      Marv
 // @description A userscript that adds score graphs to pages on vndb.
 // @downloadURL https://github.com/MarvNC/vn-userscripts/raw/master/vndb-score-graph.user.js
@@ -174,39 +174,6 @@ if (document.URL.match(/v\d+(#main)?$/)) {
               tension: 0.3,
             },
             {
-              label: '1 Month Average',
-              data: voteStats.map((vote) => {
-                return { x: vote.date, y: vote.moving };
-              }),
-              borderColor: 'rgba(52, 186, 235, 0.3)',
-              borderWidth: 2,
-              hidden: true,
-              pointHitRadius: pointHitRadius,
-              pointRadius: 0,
-              tension: 0.3,
-            },
-            {
-              label: 'Last Twenty Votes',
-              data: voteStats.map((vote) => {
-                return { x: vote.date, y: vote.lastTwenty };
-              }),
-              borderColor: 'rgba(255, 0, 0, 0.3)',
-              borderWidth: 2,
-              pointHitRadius: pointHitRadius,
-              pointRadius: 0,
-              tension: 0.3,
-            },
-            {
-              label: 'Vote',
-              data: votes.map((vote) => {
-                return { x: vote.date, y: vote.vote, label: vote.user };
-              }),
-              backgroundColor: 'rgba(0, 30, 97, 0.2)',
-              borderColor: 'rgba(0,0,0,0)',
-              pointHitRadius: pointHitRadius,
-              pointRadius: 1.5,
-            },
-            {
               label: 'Releases',
               data: releasesData,
               backgroundColor: 'rgba(255,0,0,0.3)',
@@ -221,6 +188,39 @@ if (document.URL.match(/v\d+(#main)?$/)) {
               pointRadius: 2,
             },
             {
+              label: '2 Week Popularity',
+              data: popularity,
+              backgroundColor: 'rgba(0,0,0,0)',
+              borderColor: 'rgba(199, 194, 50, 0.4)',
+              borderWidth: 2,
+              pointHitRadius: pointHitRadius,
+              pointRadius: 0,
+              tension: 0.4,
+            },
+            {
+              label: 'Last Twenty Votes',
+              data: voteStats.map((vote) => {
+                return { x: vote.date, y: vote.lastTwenty };
+              }),
+              borderColor: 'rgba(255, 0, 0, 0.3)',
+              borderWidth: 2,
+              hidden: true,
+              pointHitRadius: pointHitRadius,
+              pointRadius: 0,
+              tension: 0.3,
+            },
+            {
+              label: 'Vote',
+              data: votes.map((vote) => {
+                return { x: vote.date, y: vote.vote, label: vote.user };
+              }),
+              backgroundColor: 'rgba(0, 30, 97, 0.2)',
+              borderColor: 'rgba(0,0,0,0)',
+              hidden: true,
+              pointHitRadius: pointHitRadius,
+              pointRadius: 1.5,
+            },
+            {
               label: '% of Total Votes',
               data: voteStats.map((vote) => {
                 return { x: vote.date, y: vote.percent };
@@ -231,16 +231,6 @@ if (document.URL.match(/v\d+(#main)?$/)) {
               hidden: true,
               pointHitRadius: pointHitRadius,
               pointRadius: 0,
-            },
-            {
-              label: '2 Week Popularity',
-              data: popularity,
-              backgroundColor: 'rgba(0,0,0,0)',
-              borderColor: 'rgba(199, 194, 50, 0.4)',
-              borderWidth: 2,
-              pointHitRadius: pointHitRadius,
-              pointRadius: 0,
-              tension: 0.4,
             },
           ],
         },
