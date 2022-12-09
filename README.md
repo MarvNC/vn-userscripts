@@ -6,6 +6,7 @@ I recommend using [Violentmonkey](https://violentmonkey.github.io/) to install u
 - [vndb At A Glance](#vndb-at-a-glance)
 - [vndb Score History Graph](#vndb-score-history-graph)
   - [Usage](#usage)
+- [vndb Localized Timezones](#vndb-localized-timezones)
 - [Seiya Saiga Spoilers](#seiya-saiga-spoilers)
 
 ## vndb Links and Release Dates
@@ -50,6 +51,12 @@ This script works on `vndb.org/v*` pages for visual novel entries, where you can
 ![releases tooltip](images/score-graphs/releases%20tooltip.png)
 
 </details>
+
+## vndb Localized Timezones
+
+**[Install](https://github.com/MarvNC/vn-userscripts/raw/master/vndb-local-timestamps.user.js)**
+
+Converts the UTC timezones on vndb to that of the user's local timezone.
 
 ## Seiya Saiga Spoilers
 
