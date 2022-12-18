@@ -52,12 +52,6 @@ This script works on `vndb.org/v*` pages for visual novel entries, where you can
 
 </details>
 
-## vndb Localized Timezones
-
-**[Install](https://github.com/MarvNC/vn-userscripts/raw/master/vndb-local-timestamps.user.js)**
-
-Converts the UTC timezones on vndb to that of the user's local timezone.
-
 ## Seiya Saiga Spoilers
 
 **[Install](https://github.com/MarvNC/vn-userscripts/raw/master/seiya-saiga-spoilers.user.js)**
