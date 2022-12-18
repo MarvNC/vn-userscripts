@@ -6,7 +6,6 @@ I recommend using [Violentmonkey](https://violentmonkey.github.io/) to install u
 - [vndb At A Glance](#vndb-at-a-glance)
 - [vndb Score History Graph](#vndb-score-history-graph)
   - [Usage](#usage)
-- [vndb Localized Timezones](#vndb-localized-timezones)
 - [Seiya Saiga Spoilers](#seiya-saiga-spoilers)
 
 ## vndb Links and Release Dates
