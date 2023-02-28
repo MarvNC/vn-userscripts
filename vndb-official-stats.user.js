@@ -194,30 +194,30 @@ function makeHTMLTable(dataToLangFlags, title, collapsible = false) {
     let remainingHTML = createTableHTML(remainingRows);
 
     const tableHTML = `
-    <tr>
-    <td>
-      <details>
-        <summary>
-          <div>Titles</div>
-          <table>
-            <tbody>
-              <tr>
-              ${summaryHTML}
-              </tr>
-            </tbody>
-          </table>
-        </summary>
+<tr>
+  <td>
+    <details>
+      <summary>
+        <div>Titles</div>
         <table>
           <tbody>
-            ${remainingHTML}
+            <tr>
+            ${summaryHTML}
+            </tr>
           </tbody>
         </table>
-      </details>
-    </td>
-  </tr>
+      </summary>
+      <table>
+        <tbody>
+          ${remainingHTML}
+        </tbody>
+      </table>
+    </details>
+  </td>
+</tr>
   `;
-  debugger;
-    const tableElem = GM_addElement(tableHTML);
+    const tableElem = createElementFromHTML(tableHTML);
+    debugger;
     return tableElem;
   }
 }
@@ -228,4 +228,10 @@ function createTableHTML(dataToLangFlags) {
     tableHTML += lang.join('') + data + '<br>';
   }
   return tableHTML;
+}
+
+function createElementFromHTML(htmlString) {
+  const div = document.createElement('div');
+  div.innerHTML = htmlString;
+  return div.firstChild;
 }
