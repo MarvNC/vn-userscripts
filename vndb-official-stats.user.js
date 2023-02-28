@@ -3,7 +3,7 @@
 // @namespace   Marv
 // @homepageURL https://github.com/MarvNC/vn-userscripts
 // @match       https://vndb.org/v*
-// @grant       none
+// @grant       GM_addElement
 // @version     1.15
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
@@ -187,26 +187,37 @@ function makeHTMLTable(dataToLangFlags, title, collapsible = false) {
     }
     return tableElem;
   } else {
-    const tableElem = document.createElement('tr');
-
     const summaryRows = [...dataToLangFlags].slice(0, linksBeforeCollapse);
     let summaryHTML = createTableHTML(summaryRows);
 
-    const detailsElem = document.createElement('details');
-    detailsElem.setAttribute('open', 'false');
-    detailsElem.innerHTML = `<summary>${title}</summary><td>${summaryHTML}</td>`;
-    tableElem.appendChild(detailsElem);
-
     const remainingRows = [...dataToLangFlags].slice(linksBeforeCollapse);
-    let remainingHTML = '';
-    for (const [data, lang] of remainingRows) {
-      remainingHTML += lang.join('') + data + '<br>';
-    }
+    let remainingHTML = createTableHTML(remainingRows);
 
-    const remainingElem = document.createElement('tr');
-    remainingElem.innerHTML = `<td></td><td>${remainingHTML}</td>`;
-    tableElem.appendChild(remainingElem);
-
+    const tableHTML = `
+    <tr>
+    <td>
+      <details>
+        <summary>
+          <div>Titles</div>
+          <table>
+            <tbody>
+              <tr>
+              ${summaryHTML}
+              </tr>
+            </tbody>
+          </table>
+        </summary>
+        <table>
+          <tbody>
+            ${remainingHTML}
+          </tbody>
+        </table>
+      </details>
+    </td>
+  </tr>
+  `;
+  debugger;
+    const tableElem = GM_addElement(tableHTML);
     return tableElem;
   }
 }
