@@ -12,6 +12,8 @@
 const pathRegex = /^\/v(\d+)$/;
 const vnIdRegex = /^\/(v\d+)/;
 
+const linksBeforeCollapse = 5;
+
 (async function () {
   const currentURL = new URL(document.URL);
   let linksElem, releasesElem;
@@ -172,25 +174,47 @@ function processReleases(langInfo) {
 }
 
 /**
- *
+ * Creates an HTML table from the given data. If collapsible is true, the table will be collapsed by default but include linksBeforeCollapse links in the summary.
  * @param {object} dataToLangFlags Map of links or data as the key mapped to values of arrays of languages
  */
 function makeHTMLTable(dataToLangFlags, title, collapsible = false) {
-  let tableHTML = '';
-  if (collapsible) {
-    tableHTML += `<details><summary>Expand</summary>`;
+  if (!collapsible || dataToLangFlags.size <= linksBeforeCollapse) {
+    let tableHTML = createTableHTML(dataToLangFlags);
+
+    const tableElem = document.createElement('tr');
+    if (dataToLangFlags.size > 0) {
+      tableElem.innerHTML = `<td>${title}</td><td>${tableHTML}</td>`;
+    }
+    return tableElem;
+  } else {
+    const tableElem = document.createElement('tr');
+
+    const summaryRows = [...dataToLangFlags].slice(0, linksBeforeCollapse);
+    let summaryHTML = createTableHTML(summaryRows);
+
+    const detailsElem = document.createElement('details');
+    detailsElem.setAttribute('open', 'false');
+    detailsElem.innerHTML = `<summary>${title}</summary><td>${summaryHTML}</td>`;
+    tableElem.appendChild(detailsElem);
+
+    const remainingRows = [...dataToLangFlags].slice(linksBeforeCollapse);
+    let remainingHTML = '';
+    for (const [data, lang] of remainingRows) {
+      remainingHTML += lang.join('') + data + '<br>';
+    }
+
+    const remainingElem = document.createElement('tr');
+    remainingElem.innerHTML = `<td></td><td>${remainingHTML}</td>`;
+    tableElem.appendChild(remainingElem);
+
+    return tableElem;
   }
+}
+
+function createTableHTML(dataToLangFlags) {
+  let tableHTML = '';
   for (const [data, lang] of dataToLangFlags) {
     tableHTML += lang.join('') + data + '<br>';
   }
-
-  if (collapsible) {
-    tableHTML += '</details>';
-  }
-
-  const tableElem = document.createElement('tr');
-  if (dataToLangFlags.size > 0) {
-    tableElem.innerHTML = `<td>${title}</td><td>${tableHTML}</td>`;
-  }
-  return tableElem;
+  return tableHTML;
 }
