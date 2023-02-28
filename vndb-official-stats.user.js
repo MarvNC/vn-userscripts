@@ -4,7 +4,7 @@
 // @homepageURL https://github.com/MarvNC/vn-userscripts
 // @match       https://vndb.org/v*
 // @grant       none
-// @version     1.14
+// @version     1.15
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -19,18 +19,19 @@ const vnIdRegex = /^\/(v\d+)/;
 
   // if on main tab, get info with existing doc, otherwise fetch main page
   if (currentURL.pathname.match(pathRegex)) {
-    ({ allLinks, allReleases } = getLangInfo(document));
+    ({ officialLinks, otherLinks, allReleases } = getLangInfo(document));
   } else {
     const vnID = currentURL.pathname.match(vnIdRegex)[1];
     const vnURL = `https://vndb.org/${vnID}`;
     console.log(`Fetching ${vnURL}`);
-    ({ allLinks, allReleases } = await fetch(vnURL)
+    ({ officialLinks, otherLinks, allReleases } = await fetch(vnURL)
       .then((res) => res.text())
       .then((text) => getLangInfo(new DOMParser().parseFromString(text, 'text/html'))));
   }
 
-  linksElem = makeHTMLTable(allLinks);
-  releasesElem = makeHTMLTable(allReleases);
+  officialLinksElem = makeHTMLTable(officialLinks, 'Official Links');
+  otherLinksElem = makeHTMLTable(otherLinks, 'Other Links', true);
+  releasesElem = makeHTMLTable(allReleases, 'Release Dates');
   // ({ linksElem, releasesElem } = makeHtmlBox(allLinks, allReleases));
 
   const tbody = document.querySelector('.mainbox .vndetails tbody');
@@ -38,7 +39,8 @@ const vnIdRegex = /^\/(v\d+)/;
   const firstHeader = tbody.querySelector('tr.nostripe');
 
   tbody.insertBefore(releasesElem, firstHeader);
-  tbody.insertBefore(linksElem, firstHeader);
+  tbody.insertBefore(officialLinksElem, firstHeader);
+  tbody.insertBefore(otherLinksElem, firstHeader);
 })();
 
 /**
@@ -48,10 +50,9 @@ const vnIdRegex = /^\/(v\d+)/;
  */
 function getLangInfo(document) {
   const langInfo = extractLangInfo(document);
-  const allLinks = processLinks(langInfo);
+  const { officialLinks, otherLinks } = processLinks(langInfo);
   const allReleases = processReleases(langInfo);
-  console.log(allLinks);
-  return { allLinks, allReleases };
+  return { officialLinks, otherLinks, allReleases };
 }
 
 /**
@@ -65,21 +66,33 @@ function extractLangInfo(document) {
   [...document.querySelectorAll('.mainbox.vnreleases > details')].forEach((detail) => {
     const releases = detail.querySelectorAll('tr');
     const lang = detail.querySelector('summary > abbr.lang').outerHTML;
-    const info = { lang, links: new Set() };
+    const info = { lang, links: {} };
 
     for (const release of releases) {
+      // ignore unofficial/mtl/patches
       const grayedout = release.querySelector('b.grayedout')?.textContent ?? '';
       if (
         !grayedout.match(/unofficial|patch|machine translation/) &&
         !release.querySelector('tr')?.classList?.contains('mtl') &&
         !release?.classList?.contains('mtl')
       ) {
-        const officialLinks = [...release.querySelectorAll('a')]
-          .filter((elem) => elem.innerHTML.includes('Official website'))
-          .map((anchor) => anchor.href);
-        if (officialLinks.length > 0) {
-          info.links.add(officialLinks[0]);
+        // get official link first for the case where there is only one link
+        const officialLinkIcon = release.querySelector('abbr.external[title="Official website"]');
+        if (officialLinkIcon) {
+          info.links[officialLinkIcon.parentElement.href] = officialLinkIcon.title;
         }
+
+        // get rest of links in dropdown
+        const otherLinks = [...release.querySelectorAll('.elm_dd_relextlink li > a')];
+        if (otherLinks.length > 0) {
+          otherLinks.forEach((link) => {
+            if (!info.links[link.href]) {
+              info.links[link.href] = link.innerHTML;
+            }
+          });
+        }
+
+        // get release date
         if (!info.release && release.querySelector(`abbr.icons[title="complete"]`)) {
           info.release = release.querySelector('.tc1').innerHTML;
         }
@@ -92,34 +105,50 @@ function extractLangInfo(document) {
 }
 
 /**
- * Processes language information to extract all links.
+ * Processes language information to extract official and other links.
  * @param {Array} langInfo
- * @returns {Map} allLinks
+ * @returns {object} officialLinks, otherLinks - maps of linkHTML to languages
  */
 function processLinks(langInfo) {
-  const allLinks = new Map();
+  const officialLinks = new Map();
+  const otherLinks = new Map();
+
   for (const lang of langInfo) {
-    for (const link of [...lang.links.values()]) {
+    for (const link of Object.keys(lang.links)) {
+      const linkType = lang.links[link];
       try {
         const url = new URL(link);
-        let displayLink = url.hostname + url.pathname + url.search + url.hash;
-        displayLink = displayLink.replace(/\/$/, '');
-        displayLink = displayLink.replace(/^www./, '');
-        if (displayLink.length > 53) {
-          displayLink = displayLink.slice(0, 50) + '...';
+        let displayLink;
+        if (linkType === 'Official website') {
+          displayLink = url.hostname + url.pathname + url.search + url.hash;
+          displayLink = displayLink.replace(/\/$/, '');
+          displayLink = displayLink.replace(/^www./, '');
+          if (displayLink.length > 53) {
+            displayLink = displayLink.slice(0, 50) + '...';
+          }
+        } else {
+          displayLink = linkType;
         }
         const linkHTML = `<a href="${link}">${displayLink}</a>`;
-        if (allLinks.has(linkHTML)) {
-          allLinks.get(linkHTML).push(lang.lang);
+        if (linkType === 'Official website') {
+          if (officialLinks.has(linkHTML)) {
+            officialLinks.get(linkHTML).push(lang.lang);
+          } else {
+            officialLinks.set(linkHTML, [lang.lang]);
+          }
         } else {
-          allLinks.set(linkHTML, [lang.lang]);
+          if (otherLinks.has(linkHTML)) {
+            otherLinks.get(linkHTML).push(lang.lang);
+          } else {
+            otherLinks.set(linkHTML, [lang.lang]);
+          }
         }
       } catch (error) {
         console.log(link, error);
       }
     }
   }
-  return allLinks;
+  return { officialLinks, otherLinks };
 }
 
 /**
@@ -146,15 +175,22 @@ function processReleases(langInfo) {
  *
  * @param {object} dataToLangFlags Map of links or data as the key mapped to values of arrays of languages
  */
-function makeHTMLTable(dataToLangFlags) {
+function makeHTMLTable(dataToLangFlags, title, collapsible = false) {
   let tableHTML = '';
+  if (collapsible) {
+    tableHTML += `<details><summary>Expand</summary>`;
+  }
   for (const [data, lang] of dataToLangFlags) {
     tableHTML += lang.join('') + data + '<br>';
   }
 
+  if (collapsible) {
+    tableHTML += '</details>';
+  }
+
   const tableElem = document.createElement('tr');
   if (dataToLangFlags.size > 0) {
-    tableElem.innerHTML = `<td>Official Links</td><td>${tableHTML}</td>`;
+    tableElem.innerHTML = `<td>${title}</td><td>${tableHTML}</td>`;
   }
   return tableElem;
 }
