@@ -4,7 +4,7 @@
 // @homepageURL https://github.com/MarvNC/vn-userscripts
 // @match       https://vndb.org/v*
 // @grant       none
-// @version     1.12
+// @version     1.13
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -29,7 +29,9 @@ const vnIdRegex = /^\/(v\d+)/;
       .then((text) => getLangInfo(new DOMParser().parseFromString(text, 'text/html'))));
   }
 
-  ({ linksElem, releasesElem } = makeHtmlBox(allLinks, allReleases));
+  linksElem = makeHTMLTable(allLinks);
+  releasesElem = makeHTMLTable(allReleases);
+  // ({ linksElem, releasesElem } = makeHtmlBox(allLinks, allReleases));
 
   const tbody = document.querySelector('.mainbox .vndetails tbody');
 
@@ -42,7 +44,7 @@ const vnIdRegex = /^\/(v\d+)/;
 /**
  * Gets the official links and release dates for the given document.
  * @param {DOM} document
- * @returns {object} {links, releases}
+ * @returns {object} allLinks, allReleases
  */
 function getLangInfo(document) {
   /**
@@ -122,28 +124,18 @@ function getLangInfo(document) {
 }
 
 /**
- * Given link and release information, creates html rows of the information.
- * @param {object} allLinks
- * @param {object} allReleases
- * @returns {object} linksElem, releasesElem
+ * 
+ * @param {object} dataToLangFlags Map of links or data as the key mapped to values of arrays of languages
  */
-function makeHtmlBox(allLinks, allReleases) {
-  let linksHTML = '';
-  for (const [link, lang] of allLinks) {
-    linksHTML += lang.join('') + link + '<br>';
+function makeHTMLTable(dataToLangFlags){
+  let tableHTML = '';
+  for (const [data, lang] of dataToLangFlags) {
+    tableHTML += lang.join('') + data + '<br>';
   }
-  let releasesHTML = '';
-  for (const [release, lang] of allReleases) {
-    releasesHTML += lang.join('') + release + '<br>';
+  
+  const tableElem = document.createElement('tr');
+  if (dataToLangFlags.size > 0) {
+    tableElem.innerHTML = `<td>Official Links</td><td>${tableHTML}</td>`;
   }
-
-  const linksElem = document.createElement('tr');
-  if (allLinks.size > 0) {
-    linksElem.innerHTML = `<td>Official Links</td><td>${linksHTML}</td>`;
-  }
-  const releasesElem = document.createElement('tr');
-  if (allReleases.size > 0) {
-    releasesElem.innerHTML = `<td>Release Date</td><td>${releasesHTML}</td>`;
-  }
-  return { linksElem, releasesElem };
+  return tableElem;
 }
