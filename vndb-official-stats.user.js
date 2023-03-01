@@ -3,8 +3,9 @@
 // @namespace   Marv
 // @homepageURL https://github.com/MarvNC/vn-userscripts
 // @match       https://vndb.org/v*
-// @grant       none
-// @version     1.15
+// @grant       GM_addElement
+// @grant       GM_addStyle
+// @version     1.18
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -12,7 +13,36 @@
 const pathRegex = /^\/v(\d+)$/;
 const vnIdRegex = /^\/(v\d+)/;
 
+const linksBeforeCollapse = 5;
+
+const addCSS = /* css */`
+.otherlink a {
+  display: flex;
+}
+.otherlink a span {
+  color: #408;
+  order: 1;
+  margin-left: 10px;
+}
+.otherlink div {
+  display: flex !important;
+  flex-grow: 1;
+  flex-basis: 400px;
+}
+.otherlink td {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+.otherlink .grayedout {
+  margin-left: 10px;
+}
+`;
+
 (async function () {
+  GM_addStyle(addCSS);
+  
   const currentURL = new URL(document.URL);
   let linksElem, releasesElem;
   let allLinks, allReleases;
@@ -69,6 +99,7 @@ function extractLangInfo(document) {
     const info = { lang, links: {} };
 
     for (const release of releases) {
+      const releaseTitle = release.querySelector('.tc4 a').innerText;
       // ignore unofficial/mtl/patches
       const grayedout = release.querySelector('b.grayedout')?.textContent ?? '';
       if (
@@ -79,7 +110,10 @@ function extractLangInfo(document) {
         // get official link first for the case where there is only one link
         const officialLinkIcon = release.querySelector('abbr.external[title="Official website"]');
         if (officialLinkIcon) {
-          info.links[officialLinkIcon.parentElement.href] = officialLinkIcon.title;
+          info.links[officialLinkIcon.parentElement.href] = {
+            type: 'Official website',
+            title: releaseTitle,
+          };
         }
 
         // get rest of links in dropdown
@@ -87,7 +121,7 @@ function extractLangInfo(document) {
         if (otherLinks.length > 0) {
           otherLinks.forEach((link) => {
             if (!info.links[link.href]) {
-              info.links[link.href] = link.innerHTML;
+              info.links[link.href] = { type: link.innerHTML, title: releaseTitle };
             }
           });
         }
@@ -115,7 +149,8 @@ function processLinks(langInfo) {
 
   for (const lang of langInfo) {
     for (const link of Object.keys(lang.links)) {
-      const linkType = lang.links[link];
+      const linkType = lang.links[link].type;
+      const linkTitle = lang.links[link].title;
       try {
         const url = new URL(link);
         let displayLink;
@@ -129,7 +164,8 @@ function processLinks(langInfo) {
         } else {
           displayLink = linkType;
         }
-        const linkHTML = `<a href="${link}">${displayLink}</a>`;
+        // merge language flags on each link, create html
+        let linkHTML = `<a href="${link}">${displayLink}</a>`;
         if (linkType === 'Official website') {
           if (officialLinks.has(linkHTML)) {
             officialLinks.get(linkHTML).push(lang.lang);
@@ -137,6 +173,7 @@ function processLinks(langInfo) {
             officialLinks.set(linkHTML, [lang.lang]);
           }
         } else {
+          linkHTML += `<span class="grayedout" title="${linkTitle}">${linkTitle}</span>`;
           if (otherLinks.has(linkHTML)) {
             otherLinks.get(linkHTML).push(lang.lang);
           } else {
@@ -172,25 +209,58 @@ function processReleases(langInfo) {
 }
 
 /**
- *
+ * Creates an HTML table from the given data. If collapsible is true, the table will be collapsed by default but include linksBeforeCollapse links in the summary.
  * @param {object} dataToLangFlags Map of links or data as the key mapped to values of arrays of languages
  */
 function makeHTMLTable(dataToLangFlags, title, collapsible = false) {
+  if (!collapsible || dataToLangFlags.size <= linksBeforeCollapse) {
+    let tableHTML = createTableHTML(dataToLangFlags);
+
+    const tableElem = document.createElement('tr');
+    if (dataToLangFlags.size > 0) {
+      tableElem.innerHTML = `<td>${title}</td><td>${tableHTML}</td>`;
+    }
+    return tableElem;
+  } else {
+    const summaryRows = [...dataToLangFlags].slice(0, linksBeforeCollapse);
+    let summaryHTML = createTableHTML(summaryRows);
+
+    const remainingRows = [...dataToLangFlags].slice(linksBeforeCollapse);
+    let remainingHTML = createTableHTML(remainingRows);
+
+    const tableHTML = `
+<td class="titles" colspan="2">
+  <details>
+    <summary>
+      <div>${title}</div>
+      <table>
+        <tbody>
+          <tr class="title nostripe otherlink">
+            <td>${summaryHTML}
+          </tr>
+        </tbody>
+      </table>
+    </summary>
+    <table>
+      <tbody>
+        <tr class="title nostripe otherlink">
+          <td>${remainingHTML}</td>
+        </tr>
+      </tbody>
+    </table>
+  </details>
+</td>
+`;
+    const tableElem = document.createElement('tr');
+    tableElem.innerHTML = tableHTML;
+    return tableElem;
+  }
+}
+
+function createTableHTML(dataToLangFlags) {
   let tableHTML = '';
-  if (collapsible) {
-    tableHTML += `<details><summary>Expand</summary>`;
-  }
   for (const [data, lang] of dataToLangFlags) {
-    tableHTML += lang.join('') + data + '<br>';
+    tableHTML += '<div>' + lang.join('') + data + '</div>';
   }
-
-  if (collapsible) {
-    tableHTML += '</details>';
-  }
-
-  const tableElem = document.createElement('tr');
-  if (dataToLangFlags.size > 0) {
-    tableElem.innerHTML = `<td>${title}</td><td>${tableHTML}</td>`;
-  }
-  return tableElem;
+  return tableHTML;
 }
