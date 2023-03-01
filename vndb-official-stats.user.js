@@ -5,7 +5,7 @@
 // @match       https://vndb.org/v*
 // @grant       GM_addElement
 // @grant       GM_addStyle
-// @version     1.22
+// @version     1.23
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -190,9 +190,19 @@ function extractLangInfo(document) {
 function processLinks(langInfo, existingShops) {
   const officialLinks = new Map();
   const otherLinks = new Map();
+  const existingLinks = new Set();
 
   for (const lang of langInfo) {
     for (const link of Object.keys(lang.links)) {
+      if (existingShops.has(link)) {
+        console.log(`Skipping shop link: ${link}`);
+        continue;
+      }
+      if (existingLinks.has(link)) {
+        console.log(`Skipping duplicate link: ${link}`);
+        continue;
+      }
+      existingLinks.add(link);
       const linkType = lang.links[link].type;
       const linkTitle = lang.links[link].title;
       const linkPrice = lang.links[link].price;
@@ -224,10 +234,6 @@ function processLinks(langInfo, existingShops) {
             officialLinks.set(linkHTML, [lang.lang]);
           }
         } else {
-          if (existingShops.has(link)) {
-            console.log('Skipping existing shop link', link);
-            continue;
-          }
           linkHTML += `<span class="grayedout" title="${linkTitle}">${linkTitle}</span>`;
           if (otherLinks.has(linkHTML)) {
             otherLinks.get(linkHTML).push(lang.lang);
