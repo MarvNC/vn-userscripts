@@ -5,7 +5,7 @@
 // @match       https://vndb.org/v*
 // @grant       GM_addElement
 // @grant       GM_addStyle
-// @version     1.20
+// @version     1.21
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -45,17 +45,24 @@ const addCSS = /* css */ `
   const currentURL = new URL(document.URL);
   let linksElem, releasesElem;
   let allLinks, allReleases;
+  let existingShops;
 
   // if on main tab, get info with existing doc, otherwise fetch main page
   if (currentURL.pathname.match(pathRegex)) {
-    ({ officialLinks, otherLinks, allReleases } = getLangInfo(document));
+    existingShops = getShopLinks(document);
+    ({ officialLinks, otherLinks, allReleases } = getLangInfo(document, existingShops));
   } else {
     const vnID = currentURL.pathname.match(vnIdRegex)[1];
     const vnURL = `https://vndb.org/${vnID}`;
     console.log(`Fetching ${vnURL}`);
+    existingShops = await fetch(vnURL)
+      .then((res) => res.text())
+      .then((text) => getShopLinks(new DOMParser().parseFromString(text, 'text/html')));
     ({ officialLinks, otherLinks, allReleases } = await fetch(vnURL)
       .then((res) => res.text())
-      .then((text) => getLangInfo(new DOMParser().parseFromString(text, 'text/html'))));
+      .then((text) =>
+        getLangInfo(new DOMParser().parseFromString(text, 'text/html'), existingShops)
+      ));
   }
 
   officialLinksElem = makeHTMLTable(officialLinks, 'Official Links');
@@ -73,13 +80,27 @@ const addCSS = /* css */ `
 })();
 
 /**
+ * Gets the shop links from the given document and returns them as a set.
+ * @param {DOM} document
+ * @returns {Set} shopLinks
+ */
+function getShopLinks(document) {
+  const buynow = document.getElementById('buynow');
+  if (buynow) {
+    return new Set([...buynow.querySelectorAll('a')].map((a) => a.href));
+  } else {
+    throw new Error('No buynow element found');
+  }
+}
+/**
  * Gets the official links and release dates for the given document.
  * @param {DOM} document
+ * @param {Set} existingShops - set of shop links to exclude
  * @returns {object} allLinks, allReleases
  */
-function getLangInfo(document) {
+function getLangInfo(document, existingShops) {
   const langInfo = extractLangInfo(document);
-  const { officialLinks, otherLinks } = processLinks(langInfo);
+  const { officialLinks, otherLinks } = processLinks(langInfo, existingShops);
   const allReleases = processReleases(langInfo);
   return { officialLinks, otherLinks, allReleases };
 }
@@ -94,7 +115,7 @@ function extractLangInfo(document) {
 
   [...document.querySelectorAll('.mainbox.vnreleases > details')].forEach((detail) => {
     // Exclude collapsed languages
-    if(detail.open == false) {
+    if (detail.open == false) {
       return;
     }
     const releases = detail.querySelectorAll('tr');
@@ -150,9 +171,10 @@ function extractLangInfo(document) {
 /**
  * Processes language information to extract official and other links.
  * @param {Array} langInfo
+ * @param {Set} existingShops - set of shop links to exclude
  * @returns {object} officialLinks, otherLinks - maps of linkHTML to languages
  */
-function processLinks(langInfo) {
+function processLinks(langInfo, existingShops) {
   const officialLinks = new Map();
   const otherLinks = new Map();
 
@@ -187,6 +209,10 @@ function processLinks(langInfo) {
             officialLinks.set(linkHTML, [lang.lang]);
           }
         } else {
+          if (existingShops.has(link)) {
+            console.log('Skipping existing shop link', link);
+            continue;
+          }
           linkHTML += `<span class="grayedout" title="${linkTitle}">${linkTitle}</span>`;
           if (otherLinks.has(linkHTML)) {
             otherLinks.get(linkHTML).push(lang.lang);
