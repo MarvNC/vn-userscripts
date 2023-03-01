@@ -5,7 +5,7 @@
 // @match       https://vndb.org/v*
 // @grant       GM_addElement
 // @grant       GM_addStyle
-// @version     1.19
+// @version     1.20
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -93,6 +93,10 @@ function extractLangInfo(document) {
   const langInfo = [];
 
   [...document.querySelectorAll('.mainbox.vnreleases > details')].forEach((detail) => {
+    // Exclude collapsed languages
+    if(detail.open == false) {
+      return;
+    }
     const releases = detail.querySelectorAll('tr');
     const lang = detail.querySelector('summary > abbr.lang').outerHTML;
     const info = { lang, links: {} };
