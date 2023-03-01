@@ -136,11 +136,14 @@ function extractLangInfo(document) {
       const releaseTitle = release.querySelector('.tc4 a').innerText;
       // ignore unofficial/mtl/patches
       const grayedout = release.querySelector('b.grayedout')?.textContent ?? '';
-      if (
-        !grayedout.match(/unofficial|patch|machine translation/) &&
-        !release.querySelector('tr')?.classList?.contains('mtl') &&
-        !release?.classList?.contains('mtl')
-      ) {
+      const unofficial = !!grayedout.match(/unofficial/);
+      const patch = !!grayedout.match(/patch/);
+      const mtl =
+        grayedout.match(/machine translation/) ||
+        release.querySelector('tr')?.classList?.contains('mtl') ||
+        release?.classList?.contains('mtl');
+      const complete = !!release.querySelector(`abbr.icons[title="complete"]`);
+      if (!unofficial && !patch && !mtl) {
         // get official link first for the case where there is only one link
         const officialLinkIcon = release.querySelector('abbr.external[title="Official website"]');
         if (officialLinkIcon) {
@@ -167,7 +170,7 @@ function extractLangInfo(document) {
         }
 
         // get release date
-        if (!info.release && release.querySelector(`abbr.icons[title="complete"]`)) {
+        if (!info.release && complete) {
           info.release = release.querySelector('.tc1').innerHTML;
         }
       }
