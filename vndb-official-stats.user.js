@@ -5,7 +5,7 @@
 // @match       https://vndb.org/v*
 // @grant       GM_addElement
 // @grant       GM_addStyle
-// @version     1.21
+// @version     1.22
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -27,6 +27,7 @@ const addCSS = /* css */ `
   display: flex !important;
   flex-grow: 1;
   flex-basis: 400px;
+  align-items: center;
 }
 /* .otherlink td {
   display: flex;
@@ -36,6 +37,18 @@ const addCSS = /* css */ `
 } */
 .otherlink .grayedout {
   margin-left: 10px;
+}
+
+td#officialLinks div {
+  display: flex;
+  align-items: center;
+}
+
+.scriptLinks img.favicon{
+  height: 16px;
+  width: 16px;
+  margin-right: 5px;
+  margin-left: 5px;
 }
 `;
 
@@ -186,6 +199,7 @@ function processLinks(langInfo, existingShops) {
       try {
         const url = new URL(link);
         let displayLink;
+        let faviconURL = url.origin + '/favicon.ico';
         if (linkType === 'Official website') {
           displayLink = url.hostname + url.pathname + url.search + url.hash;
           displayLink = displayLink.replace(/\/$/, '');
@@ -198,6 +212,7 @@ function processLinks(langInfo, existingShops) {
         }
         // merge language flags on each link, create html
         let linkHTML = `
+<img src="${faviconURL}" alt="favicon" class="favicon">
 <a href="${link}" title="${displayLink}">
   ${displayLink}
   ${linkPrice ? `<span>${linkPrice}</span>` : ''}
@@ -258,7 +273,7 @@ function makeHTMLTable(dataToLangFlags, title, collapsible = false) {
 
     const tableElem = document.createElement('tr');
     if (dataToLangFlags.size > 0) {
-      tableElem.innerHTML = `<td>${title}</td><td>${tableHTML}</td>`;
+      tableElem.innerHTML = `<td>${title}</td><td id="officialLinks" class="scriptLinks">${tableHTML}</td>`;
     }
     return tableElem;
   } else {
@@ -269,7 +284,7 @@ function makeHTMLTable(dataToLangFlags, title, collapsible = false) {
     let remainingHTML = createTableHTML(remainingRows);
 
     const tableHTML = `
-<td class="titles" colspan="2">
+<td class="titles scriptLinks" colspan="2">
   <details>
     <summary>
       <div>${title}</div>
