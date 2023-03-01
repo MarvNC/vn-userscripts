@@ -5,7 +5,7 @@
 // @match       https://vndb.org/v*
 // @grant       GM_addElement
 // @grant       GM_addStyle
-// @version     1.17
+// @version     1.18
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -34,6 +34,9 @@ const addCSS = /* css */`
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+}
+.otherlink .grayedout {
+  margin-left: 10px;
 }
 `;
 
@@ -147,6 +150,7 @@ function processLinks(langInfo) {
   for (const lang of langInfo) {
     for (const link of Object.keys(lang.links)) {
       const linkType = lang.links[link].type;
+      const linkTitle = lang.links[link].title;
       try {
         const url = new URL(link);
         let displayLink;
@@ -161,7 +165,7 @@ function processLinks(langInfo) {
           displayLink = linkType;
         }
         // merge language flags on each link, create html
-        const linkHTML = `<a href="${link}">${displayLink}</a>`;
+        let linkHTML = `<a href="${link}">${displayLink}</a>`;
         if (linkType === 'Official website') {
           if (officialLinks.has(linkHTML)) {
             officialLinks.get(linkHTML).push(lang.lang);
@@ -169,6 +173,7 @@ function processLinks(langInfo) {
             officialLinks.set(linkHTML, [lang.lang]);
           }
         } else {
+          linkHTML += `<span class="grayedout" title="${linkTitle}">${linkTitle}</span>`;
           if (otherLinks.has(linkHTML)) {
             otherLinks.get(linkHTML).push(lang.lang);
           } else {
