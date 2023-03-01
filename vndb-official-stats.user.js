@@ -4,7 +4,8 @@
 // @homepageURL https://github.com/MarvNC/vn-userscripts
 // @match       https://vndb.org/v*
 // @grant       GM_addElement
-// @version     1.16
+// @grant       GM_addStyle
+// @version     1.17
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -14,7 +15,31 @@ const vnIdRegex = /^\/(v\d+)/;
 
 const linksBeforeCollapse = 5;
 
+const addCSS = /* css */`
+.otherlink a {
+  display: flex;
+}
+.otherlink a span {
+  color: #408;
+  order: 1;
+  margin-left: 10px;
+}
+.otherlink div {
+  display: flex !important;
+  flex-grow: 1;
+  flex-basis: 400px;
+}
+.otherlink td {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+`;
+
 (async function () {
+  GM_addStyle(addCSS);
+  
   const currentURL = new URL(document.URL);
   let linksElem, releasesElem;
   let allLinks, allReleases;
@@ -71,6 +96,7 @@ function extractLangInfo(document) {
     const info = { lang, links: {} };
 
     for (const release of releases) {
+      const releaseTitle = release.querySelector('.tc4 a').innerText;
       // ignore unofficial/mtl/patches
       const grayedout = release.querySelector('b.grayedout')?.textContent ?? '';
       if (
@@ -81,7 +107,10 @@ function extractLangInfo(document) {
         // get official link first for the case where there is only one link
         const officialLinkIcon = release.querySelector('abbr.external[title="Official website"]');
         if (officialLinkIcon) {
-          info.links[officialLinkIcon.parentElement.href] = officialLinkIcon.title;
+          info.links[officialLinkIcon.parentElement.href] = {
+            type: 'Official website',
+            title: releaseTitle,
+          };
         }
 
         // get rest of links in dropdown
@@ -89,7 +118,7 @@ function extractLangInfo(document) {
         if (otherLinks.length > 0) {
           otherLinks.forEach((link) => {
             if (!info.links[link.href]) {
-              info.links[link.href] = link.innerHTML;
+              info.links[link.href] = { type: link.innerHTML, title: releaseTitle };
             }
           });
         }
@@ -117,7 +146,7 @@ function processLinks(langInfo) {
 
   for (const lang of langInfo) {
     for (const link of Object.keys(lang.links)) {
-      const linkType = lang.links[link];
+      const linkType = lang.links[link].type;
       try {
         const url = new URL(link);
         let displayLink;
@@ -131,6 +160,7 @@ function processLinks(langInfo) {
         } else {
           displayLink = linkType;
         }
+        // merge language flags on each link, create html
         const linkHTML = `<a href="${link}">${displayLink}</a>`;
         if (linkType === 'Official website') {
           if (officialLinks.has(linkHTML)) {
@@ -200,15 +230,15 @@ function makeHTMLTable(dataToLangFlags, title, collapsible = false) {
       <div>${title}</div>
       <table>
         <tbody>
-          <tr class="title nostripe">
-            <td>${summaryHTML}</td>
+          <tr class="title nostripe otherlink">
+            <td>${summaryHTML}
           </tr>
         </tbody>
       </table>
     </summary>
     <table>
       <tbody>
-        <tr class="title nostripe">
+        <tr class="title nostripe otherlink">
           <td>${remainingHTML}</td>
         </tr>
       </tbody>
@@ -225,7 +255,7 @@ function makeHTMLTable(dataToLangFlags, title, collapsible = false) {
 function createTableHTML(dataToLangFlags) {
   let tableHTML = '';
   for (const [data, lang] of dataToLangFlags) {
-    tableHTML += lang.join('') + data + '<br>';
+    tableHTML += '<div>' + lang.join('') + data + '</div>';
   }
   return tableHTML;
 }
