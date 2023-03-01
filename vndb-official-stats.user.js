@@ -4,7 +4,7 @@
 // @homepageURL https://github.com/MarvNC/vn-userscripts
 // @match       https://vndb.org/v*
 // @grant       GM_addElement
-// @version     1.15
+// @version     1.16
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -194,30 +194,30 @@ function makeHTMLTable(dataToLangFlags, title, collapsible = false) {
     let remainingHTML = createTableHTML(remainingRows);
 
     const tableHTML = `
-<tr>
-  <td>
-    <details>
-      <summary>
-        <div>Titles</div>
-        <table>
-          <tbody>
-            <tr>
-            ${summaryHTML}
-            </tr>
-          </tbody>
-        </table>
-      </summary>
+<td class="titles" colspan="2">
+  <details>
+    <summary>
+      <div>${title}</div>
       <table>
         <tbody>
-          ${remainingHTML}
+          <tr class="title nostripe">
+            <td>${summaryHTML}</td>
+          </tr>
         </tbody>
       </table>
-    </details>
-  </td>
-</tr>
-  `;
-    const tableElem = createElementFromHTML(tableHTML);
-    debugger;
+    </summary>
+    <table>
+      <tbody>
+        <tr class="title nostripe">
+          <td>${remainingHTML}</td>
+        </tr>
+      </tbody>
+    </table>
+  </details>
+</td>
+`;
+    const tableElem = document.createElement('tr');
+    tableElem.innerHTML = tableHTML;
     return tableElem;
   }
 }
@@ -228,10 +228,4 @@ function createTableHTML(dataToLangFlags) {
     tableHTML += lang.join('') + data + '<br>';
   }
   return tableHTML;
-}
-
-function createElementFromHTML(htmlString) {
-  const div = document.createElement('div');
-  div.innerHTML = htmlString;
-  return div.firstChild;
 }
