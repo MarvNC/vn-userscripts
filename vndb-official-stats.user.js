@@ -5,7 +5,7 @@
 // @match       https://vndb.org/v*
 // @grant       GM_addElement
 // @grant       GM_addStyle
-// @version     1.23
+// @version     1.24
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -28,13 +28,10 @@ const addCSS = /* css */ `
   flex-grow: 1;
   flex-basis: 400px;
   align-items: center;
+  border: 1px dashed rgb(255 0 153 / 30%);
+  border-radius: 8px;
+  padding: 2px;
 }
-/* .otherlink td {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-} */
 .otherlink .grayedout {
   margin-left: 10px;
 }
