@@ -5,7 +5,7 @@
 // @match       https://vndb.org/v*
 // @grant       GM_addElement
 // @grant       GM_addStyle
-// @version     1.18
+// @version     1.19
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -15,13 +15,12 @@ const vnIdRegex = /^\/(v\d+)/;
 
 const linksBeforeCollapse = 5;
 
-const addCSS = /* css */`
+const addCSS = /* css */ `
 .otherlink a {
   display: flex;
 }
 .otherlink a span {
   color: #408;
-  order: 1;
   margin-left: 10px;
 }
 .otherlink div {
@@ -29,12 +28,12 @@ const addCSS = /* css */`
   flex-grow: 1;
   flex-basis: 400px;
 }
-.otherlink td {
+/* .otherlink td {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-}
+} */
 .otherlink .grayedout {
   margin-left: 10px;
 }
@@ -42,7 +41,7 @@ const addCSS = /* css */`
 
 (async function () {
   GM_addStyle(addCSS);
-  
+
   const currentURL = new URL(document.URL);
   let linksElem, releasesElem;
   let allLinks, allReleases;
@@ -119,9 +118,15 @@ function extractLangInfo(document) {
         // get rest of links in dropdown
         const otherLinks = [...release.querySelectorAll('.elm_dd_relextlink li > a')];
         if (otherLinks.length > 0) {
-          otherLinks.forEach((link) => {
-            if (!info.links[link.href]) {
-              info.links[link.href] = { type: link.innerHTML, title: releaseTitle };
+          otherLinks.forEach((linkAnchor) => {
+            if (!info.links[linkAnchor.href]) {
+              info.links[linkAnchor.href] = { type: linkAnchor.innerHTML, title: releaseTitle };
+              const priceSpan = linkAnchor.querySelector('span');
+              if (priceSpan) {
+                const price = priceSpan.textContent;
+                info.links[linkAnchor.href].price = price;
+                info.links[linkAnchor.href].type = linkAnchor.childNodes[1].textContent;
+              }
             }
           });
         }
@@ -151,6 +156,7 @@ function processLinks(langInfo) {
     for (const link of Object.keys(lang.links)) {
       const linkType = lang.links[link].type;
       const linkTitle = lang.links[link].title;
+      const linkPrice = lang.links[link].price;
       try {
         const url = new URL(link);
         let displayLink;
@@ -165,7 +171,11 @@ function processLinks(langInfo) {
           displayLink = linkType;
         }
         // merge language flags on each link, create html
-        let linkHTML = `<a href="${link}">${displayLink}</a>`;
+        let linkHTML = `
+<a href="${link}" title="${displayLink}">
+  ${displayLink}
+  ${linkPrice ? `<span>${linkPrice}</span>` : ''}
+</a>`;
         if (linkType === 'Official website') {
           if (officialLinks.has(linkHTML)) {
             officialLinks.get(linkHTML).push(lang.lang);
