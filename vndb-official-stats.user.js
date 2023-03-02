@@ -6,7 +6,7 @@
 // @grant       GM_addElement
 // @grant       GM_addStyle
 // @grant       GM_xmlhttpRequest
-// @version     1.36
+// @version     1.37
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -520,6 +520,8 @@ async function getPrice(link, type) {
       return await getDenpasoftPrice(link);
     case 'Nutaku':
       return await getNutakuPrice(link);
+    case 'Fakku':
+      return await getFakkuPrice(link);
     default:
       console.log(`${type} not supported yet`);
       return null;
@@ -569,6 +571,11 @@ async function getDMMPrice(link) {
     }
   } else {
     // physical purchase
+
+    // region blocked
+    if (!doc.querySelector('.bg-bskt')) {
+      return;
+    }
     const priceElem = doc.querySelector('.txt-price-discount');
     if (priceElem) {
       return priceElem.textContent;
@@ -681,6 +688,20 @@ async function getNutakuPrice(link) {
   return null;
 }
 
+/**
+ * Gets the price for the given Fakku link.
+ * @param {string} link
+ * @returns {string} price
+ */
+async function getFakkuPrice(link) {
+  const doc = await getDocumentFromURL(link);
+  const priceElem = doc.querySelector(
+    '.w-full.table div[data-tippy-content="Add to Cart"].js-purchase-product'
+  );
+  if (priceElem) {
+    return priceElem.innerText;
+  }
+}
 /**
  * Gets the tax-included price from a string.
  * @param {string} priceString
