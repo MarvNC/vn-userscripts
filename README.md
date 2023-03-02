@@ -17,8 +17,8 @@ A userscript that adds:
 - Platform support information by language, with icons greyed out for unofficial releases and a 🚧 symbol to indicate that a release has not yet been released.
 - Release dates by language
 - Official links
-- All other links linked in releases, which includes info sites like ErogameScape and retail sites.
-- Price fetching is currently supported for the following sites:
+- All other links that are linked in releases, which includes info sites like ErogameScape and various retail sites. This is collapsible and can be clicked to expand and show all links.
+- Price fetching is currently supported for the following external retail sites:
   - Steam
   - DMM
   - Getchu
@@ -27,6 +27,7 @@ A userscript that adds:
   - Denpasoft
   - Nutaku
   - Fakku
+- Please file an issue to request support for other sites.
 - Note that prices will usually be 税込 (tax included) for JP retail sites. The ❌ symbol indicates that the product is likely out of stock.
 
 ![links script example](images/chrome_%E8%92%BC%E3%81%AE%E5%BD%BC%E6%96%B9%E3%81%AE%E3%83%95%E3%82%A9%E3%83%BC%E3%83%AA%E3%82%BA%E3%83%A0_EXTRA1__vndb_-_Google_Chrome_2023-03-02_13-04-14.png)
