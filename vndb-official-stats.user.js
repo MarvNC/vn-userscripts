@@ -6,7 +6,7 @@
 // @grant       GM_addElement
 // @grant       GM_addStyle
 // @grant       GM_xmlhttpRequest
-// @version     1.37
+// @version     1.38
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -23,7 +23,7 @@ const addCSS = /* css */ `
 .otherlink a {
   display: flex;
 }
-.otherlink a span {
+.scriptLinks a span {
   color: #408;
   margin-left: 10px;
 }
@@ -487,14 +487,15 @@ async function fetchPrices(otherLinksElem) {
   for (const linkAnchor of links) {
     const link = linkAnchor.href;
     const type = linkAnchor.title;
-    const price = await getPrice(link, type);
-    if (price) {
-      const priceSpan = document.createElement('span');
-      priceSpan.textContent = price;
-      linkAnchor.appendChild(priceSpan);
-    } else {
-      console.log(`No price found for ${link}`);
-    }
+    getPrice(link, type).then((price) => {
+      if (price) {
+        const priceSpan = document.createElement('span');
+        priceSpan.textContent = price;
+        linkAnchor.appendChild(priceSpan);
+      } else {
+        console.log(`No price found for ${link}`);
+      }
+    });
   }
 }
 
