@@ -5,7 +5,7 @@
 // @match       https://vndb.org/v*
 // @grant       GM_addElement
 // @grant       GM_addStyle
-// @version     1.32
+// @version     1.33
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -28,9 +28,8 @@ const addCSS = /* css */ `
   flex-grow: 1;
   flex-basis: 400px;
   align-items: center;
-  margin: 3px 0px;
 }
-.scriptLinks div {
+.scriptLinks div, .otherlink div {
   margin: 3px 0px;
 }
 .scriptLinks .grayedout {
@@ -220,15 +219,20 @@ function extractLangInfo(document) {
         }
       }
       // check if release date is set so that there's an official release, add platform if so
-      if (info.release && !info.release.includes('TBA') && complete && !mtl) {
+      if (info.release && complete && !mtl) {
         const platform = release.querySelector('.platicon').outerHTML;
+        const released = !release.querySelector('.future');
         // add platform, set officiality
         if (!info.platforms[platform]) {
-          info.platforms[platform] = { official: !unofficial };
+          info.platforms[platform] = { official: !unofficial, released };
         }
         // set to official if not already set
         if (!info.platforms[platform].official && !unofficial) {
           info.platforms[platform].official = true;
+        }
+        // set to released if not already set
+        if (!info.platforms[platform].released && released) {
+          info.platforms[platform].released = true;
         }
       }
     }
@@ -240,24 +244,52 @@ function extractLangInfo(document) {
 }
 
 /**
+ * Given a map of links to platforms and their release status, returns an HTML string of platform images and labels.
+ * @param {array} platforms
+ * @param {boolean} isUnreleased
+ */
+function createPlatformHtmlString(platforms, isUnreleased = false) {
+  let htmlString = '';
+  const label = isUnreleased ? '🚧:' : '';
+  for (const [platformHTML, info] of platforms) {
+    const platformImg = createElementFromHTML(platformHTML);
+    if (!info.official) {
+      platformImg.title += ' (unofficial)';
+      platformImg.classList.add('unofficial');
+    }
+    if (isUnreleased) {
+      platformImg.title += ' (unreleased)';
+      platformImg.classList.add('unreleased');
+    }
+    htmlString += platformImg.outerHTML;
+    platformImg.remove();
+  }
+  return `${label} ${htmlString}`;
+}
+
+/**
  * Given a map of links to languages, returns a table element about platform support.
  * @param {object[]} langInfo
  */
 function makePlatformTable(langInfo) {
   let htmlString = '';
   for (const lang of langInfo) {
+    const platforms = Object.entries(lang.platforms);
+    const released = platforms.filter(([, info]) => info.released);
+    const unreleased = platforms.filter(([, info]) => !info.released);
+
     const flag = lang.lang;
     htmlString += `<div>${flag}`;
-    for (const [platformHTML, info] of Object.entries(lang.platforms)) {
-      const platformImg = createElementFromHTML(platformHTML);
-      platformImg.title += info.official ? '' : ' (unofficial)';
-      if (!info.official) {
-        platformImg.classList.add('unofficial');
-      }
-      htmlString += platformImg.outerHTML;
-      platformImg.remove();
+
+    if (released.length > 0) {
+      htmlString += createPlatformHtmlString(released);
     }
-    htmlString += '</div>';
+    if (unreleased.length > 0) {
+      if (released.length > 0) {
+        htmlString += '　';
+      }
+      htmlString += createPlatformHtmlString(unreleased, true);
+    }
   }
   const platformsElem = document.createElement('tr');
   platformsElem.className = 'platforms';
@@ -307,7 +339,7 @@ function processLinks(langInfo, existingShops, titles) {
         i++;
       }
       linkTitle = linkTitle.trim();
-      
+
       const linkPrice = lang.links[link].price;
       try {
         const url = new URL(link);
