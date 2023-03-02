@@ -5,7 +5,7 @@
 // @match       https://vndb.org/v*
 // @grant       GM_addElement
 // @grant       GM_addStyle
-// @version     1.28
+// @version     1.29
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -261,7 +261,7 @@ function processLinks(langInfo, existingShops) {
       try {
         const url = new URL(link);
         let displayLink;
-        let faviconURL = url.origin + '/favicon.ico';
+        let faviconURL = 'https://www.google.com/s2/favicons?sz=16&domain=' + url;
         if (linkType === 'Official website') {
           displayLink = url.hostname + url.pathname + url.search + url.hash;
           displayLink = displayLink.replace(/\/$/, '');
