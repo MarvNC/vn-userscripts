@@ -5,7 +5,7 @@
 // @match       https://vndb.org/v*
 // @grant       GM_addElement
 // @grant       GM_addStyle
-// @version     1.26
+// @version     1.27
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -183,7 +183,7 @@ function extractLangInfo(document) {
         }
       }
       // check if release date is set so that there's an official release, add platform if so
-      if (info.release && complete && !mtl) {
+      if (info.release && !info.release.includes('TBA') && complete && !mtl) {
         const platform = release.querySelector('.platicon').outerHTML;
         // add platform, set officiality
         if (!info.platforms[platform]) {
