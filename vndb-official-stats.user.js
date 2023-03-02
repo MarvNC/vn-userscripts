@@ -6,7 +6,7 @@
 // @grant       GM_addElement
 // @grant       GM_addStyle
 // @grant       GM_xmlhttpRequest
-// @version     1.38
+// @version     1.39
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -20,12 +20,12 @@ const freeEmoji = '🎁';
 
 const linksBeforeCollapse = 5;
 
-const addCSS = /* css */ `
+const addCSS = (documentBodyComputedStyle) => /* css */ `
 .otherlink a {
   display: flex;
 }
 .scriptLinks a span {
-  color: #408;
+  color: ${documentBodyComputedStyle.color};
   margin-left: 10px;
 }
 .otherlink div {
@@ -65,7 +65,7 @@ td#officialLinks div {
 `;
 
 (async function () {
-  GM_addStyle(addCSS);
+  GM_addStyle(addCSS(getComputedStyle(document.body)));
 
   const currentURL = new URL(document.URL);
   let allReleases;
