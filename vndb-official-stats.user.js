@@ -13,6 +13,9 @@
 
 const pathRegex = /^\/v(\d+)$/;
 const vnIdRegex = /^\/(v\d+)/;
+const 税込みRegex = /[\(（]税込([^\)]+)[\)）]/;
+const unreleasedEmoji = '🚧';
+const outOfStockEmoji = '❌';
 
 const linksBeforeCollapse = 5;
 
@@ -257,7 +260,7 @@ function extractLangInfo(document) {
  */
 function createPlatformHtmlString(platforms, isUnreleased = false) {
   let htmlString = '';
-  const label = isUnreleased ? '🚧:' : '';
+  const label = isUnreleased ? `${unreleasedEmoji}:` : '';
   for (const [platformHTML, info] of platforms) {
     const platformImg = createElementFromHTML(platformHTML);
     if (!info.official) {
@@ -489,6 +492,8 @@ async function fetchPrices(otherLinksElem) {
       const priceSpan = document.createElement('span');
       priceSpan.textContent = price;
       linkAnchor.appendChild(priceSpan);
+    } else {
+      console.log(`No price found for ${link}`);
     }
   }
 }
@@ -498,23 +503,23 @@ async function fetchPrices(otherLinksElem) {
  * @param {string} link
  * @param {string} type
  * @returns {string} price
- * @async
  */
 async function getPrice(link, type) {
   switch (type) {
     case 'Steam':
       return await getSteamPrice(link);
-    // TODO
-    // case 'DMM':
-    //   return await getDMMPrice(link);
-    // case 'Getchu':
-    //   return await getGetchuPrice(link);
-    // case 'Toranoana':
-    //   return await getToranoanaPrice(link);
-    // case 'Melonbooks.co.jp':
-    //   return await getMelonbooksPrice(link);
-    // case 'Denpasoft':
-    //   return await getDenpasoftPrice(link);
+    case 'DMM':
+      return await getDMMPrice(link);
+    case 'Getchu':
+      return await getGetchuPrice(link);
+    case 'Toranoana':
+      return await getToranoanaPrice(link);
+    case 'Melonbooks.co.jp':
+      return await getMelonbooksPrice(link);
+    case 'Denpasoft':
+      return await getDenpasoftPrice(link);
+    case 'Nutaku':
+      return await getNutakuPrice(link);
     default:
       console.log(`${type} not supported yet`);
       return null;
@@ -525,7 +530,6 @@ async function getPrice(link, type) {
  * Gets the price for the given Steam link.
  * @param {string} link
  * @returns {string} price
- * @async
  */
 async function getSteamPrice(link) {
   const steamId = link.match(/\/app\/(\d+)/)[1];
@@ -543,6 +547,141 @@ async function getSteamPrice(link) {
   }
 
   return null;
+}
+
+/**
+ * Gets the price for the given DMM link.
+ * @param {string} link
+ * @returns {string} price
+ */
+async function getDMMPrice(link) {
+  const doc = await getDocumentFromURL(link);
+  const normalPrice = doc.querySelector('td.normal-price.red');
+  const couponPrice = doc.querySelector('div.coupon-price');
+  if (couponPrice) {
+    return couponPrice.textContent;
+  }
+  if (normalPrice) {
+    return normalPrice.textContent;
+  }
+  return null;
+}
+
+/**
+ * Gets the price for the given Getchu link.
+ * @param {string} link
+ * @returns {string} price
+ */
+async function getGetchuPrice(link) {
+  const adultLink = link + '&gc=gc';
+  const doc = await getDocumentFromURL(adultLink);
+  const taxIn = doc.querySelector('.taxin');
+  if (taxIn) {
+    return getTaxPrice(taxIn.textContent);
+  }
+
+  // out of stock, get 定価 price
+  const softTable = doc.getElementById('soft_table');
+  const priceLabel = [...softTable.querySelectorAll('td')].find(
+    (td) => td.textContent === '定価：'
+  );
+  if (priceLabel) {
+    return outOfStockEmoji + getTaxPrice(priceLabel.nextElementSibling.textContent);
+  }
+  return null;
+}
+
+/**
+ * Gets the price for the given Toranoana link.
+ * @param {string} link
+ * @returns {string} price
+ */
+async function getToranoanaPrice(link) {
+  const doc = await getDocumentFromURL(link);
+
+  let stock = false;
+  let price = '';
+
+  const addToCart = doc.querySelector('div.product-detail-cart-block a.product-detail-cart-btn');
+  if (addToCart) {
+    stock = addToCart.innerText.includes('お取り寄せ');
+  }
+
+  const priceElem = doc.querySelector('ul.pricearea li');
+  if (priceElem) {
+    price = priceElem.dataset.price;
+  }
+  return (stock ? '' : outOfStockEmoji) + price;
+}
+
+/**
+ * Gets the price for the given Melonbooks link.
+ * @param {string} link
+ * @returns {string} price
+ */
+async function getMelonbooksPrice(link) {
+  const adultURL = link + '&adult_view=1';
+  const doc = await getDocumentFromURL(adultURL);
+  let stock = false;
+  let price = '';
+
+  const cartInput = doc.querySelector('div.btn-cart');
+  if (cartInput) {
+    stock = cartInput.innerText.includes('カートに入れる');
+  }
+
+  const priceElem = doc.querySelector('p.price span.yen');
+  if (priceElem) {
+    const delElem = priceElem.querySelector('del');
+    if (delElem) {
+      delElem.remove();
+    }
+    price = priceElem.innerText.trim();
+  }
+  return (stock ? '' : outOfStockEmoji) + price;
+}
+
+/**
+ * Gets the price for the given Denpasoft link.
+ * @param {string} link
+ * @returns {string} price
+ */
+async function getDenpasoftPrice(link) {
+  const doc = await getDocumentFromURL(link);
+  const priceElem = doc.querySelector('p.price span.woocommerce-Price-amount.amount');
+  if (priceElem) {
+    return priceElem.innerText;
+  }
+  return null;
+}
+
+/**
+ * Gets the price for the given Nutaku link.
+ * @param {string} link
+ * @returns {string} price
+ */
+async function getNutakuPrice(link) {
+  const doc = await getDocumentFromURL(link);
+  const priceElem = doc.querySelector('div.premium-purchase div.price-line');
+  if (priceElem) {
+    return priceElem.childNodes[0].textContent;
+  }
+  return null;
+}
+
+/**
+ * Gets the tax-included price from a string.
+ * @param {string} priceString
+ * @returns {string} price
+ */
+function getTaxPrice(priceString) {
+  try {
+    const price = priceString.match(税込みRegex)[1];
+    return price;
+  } catch (error) {
+    console.log(`Error parsing price: ${priceString}`);
+    return priceString;
+  }
 }
 
 /**
@@ -572,7 +711,6 @@ async function getDocumentFromURL(url) {
  * Gets the JSON from a URL using GM_xmlhttpRequest to access other domains
  * @param {string} url
  * @returns {Promise<Object>}
- * @async
  */
 async function getJSONFromURL(url) {
   console.log(`Fetching ${url}...`);
