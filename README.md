@@ -2,19 +2,36 @@
 
 I recommend using [Violentmonkey](https://violentmonkey.github.io/) to install userscripts.
 
-- [vndb Links and Release Dates](#vndb-links-and-release-dates)
+- [vndb Links, Prices, and Release Dates](#vndb-links-prices-and-release-dates)
 - [vndb At A Glance](#vndb-at-a-glance)
 - [vndb Score History Graph](#vndb-score-history-graph)
   - [Usage](#usage)
 - [Seiya Saiga Spoilers](#seiya-saiga-spoilers)
 
-## vndb Links and Release Dates
+## vndb Links, Prices, and Release Dates
 
 **[Install](https://github.com/MarvNC/vn-userscripts/raw/master/vndb-official-stats.user.js)**
 
-A userscript that adds official links and release dates to the main infobox on vndb entries.
+A userscript that adds:
 
-![](images/chrome_%E3%83%8F%E3%83%9F%E3%83%80%E3%82%B7%E3%82%AF%E3%83%AA%E3%82%A8%E3%82%A4%E3%83%86%E3%82%A3%E3%83%96__vndb_-_httpsvndb.org_-_Google_Ch_2022-08-22_19-27-22.png)
+- Platform support information by language, with icons greyed out for unofficial releases and a 🚧 symbol to indicate that a release has not yet been released.
+- Release dates by language
+- Official links
+- All other links linked in releases, which includes info sites like ErogameScape and retail sites.
+- Price fetching is currently supported for the following sites:
+  - Steam
+  - DMM
+  - Getchu
+  - Toranoana
+  - Melonbooks
+  - Denpasoft
+  - Nutaku
+  - Fakku
+- Note that prices will usually be 税込 (tax included) for JP retail sites. The ❌ symbol indicates that the product is likely out of stock.
+
+![links script example](images/chrome_%E8%92%BC%E3%81%AE%E5%BD%BC%E6%96%B9%E3%81%AE%E3%83%95%E3%82%A9%E3%83%BC%E3%83%AA%E3%82%BA%E3%83%A0_EXTRA1__vndb_-_Google_Chrome_2023-03-02_13-04-14.png)
+
+Also note that some sites may not display prices for you due to region blocks.
 
 ## vndb At A Glance
 
