@@ -16,6 +16,7 @@ const vnIdRegex = /^\/(v\d+)/;
 const 税込みRegex = /[\(（]税込([^\)]+)[\)）]/;
 const unreleasedEmoji = '🚧';
 const outOfStockEmoji = '❌';
+const freeEmoji = '🎁';
 
 const linksBeforeCollapse = 5;
 
@@ -541,6 +542,9 @@ async function getSteamPrice(link) {
     const response = await getJSONFromURL(steamURL);
     const data = response[steamId];
     if (data.success) {
+      if (data.data.is_free) {
+        return freeEmoji;
+      }
       const price = data.data.price_overview.final / 100;
       return `$${price}`;
     }
