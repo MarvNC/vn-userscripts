@@ -5,7 +5,7 @@
 // @match       https://vndb.org/v*
 // @grant       GM_addElement
 // @grant       GM_addStyle
-// @version     1.33
+// @version     1.34
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -187,12 +187,12 @@ function extractLangInfo(document) {
         release.querySelector('tr')?.classList?.contains('mtl') ||
         release?.classList?.contains('mtl');
       const complete = !!release.querySelector(`abbr.icons[title="complete"]`);
-      if (!unofficial && !patch && !mtl) {
+      if (!unofficial && !mtl) {
         // get official link first for the case where there is only one link
         const officialLinkIcon = release.querySelector('abbr.external[title="Official website"]');
         if (officialLinkIcon) {
           info.links[officialLinkIcon.parentElement.href] = {
-            type: 'Official website',
+            type: patch ? 'Patch' : 'Official website',
             title: releaseTitle,
           };
         }
@@ -209,12 +209,16 @@ function extractLangInfo(document) {
                 info.links[linkAnchor.href].price = price;
                 info.links[linkAnchor.href].type = linkAnchor.childNodes[1].textContent;
               }
+              // set type to patch if it's a patch
+              if (patch) {
+                info.links[linkAnchor.href].type = 'Patch';
+              }
             }
           });
         }
 
         // get release date
-        if (!info.release && complete) {
+        if (!info.release && complete && !patch) {
           info.release = release.querySelector('.tc1').innerHTML;
         }
       }
