@@ -5,7 +5,7 @@
 // @match       https://vndb.org/v*
 // @grant       GM_addElement
 // @grant       GM_addStyle
-// @version     1.27
+// @version     1.28
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -107,7 +107,7 @@ function getShopLinks(document) {
   if (buynow) {
     return new Set([...buynow.querySelectorAll('a')].map((a) => a.href));
   } else {
-    throw new Error('No buynow element found');
+    return new Set();
   }
 }
 /**
