@@ -5,7 +5,7 @@
 // @match       https://vndb.org/v*
 // @grant       GM_addElement
 // @grant       GM_addStyle
-// @version     1.25
+// @version     1.26
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -47,6 +47,13 @@ td#officialLinks div {
   margin-right: 5px;
   margin-left: 5px;
 }
+
+.platforms .lang {
+  margin-right: 5px;
+}
+.platforms img.unofficial {
+  -webkit-filter: grayscale(100%);
+}
 `;
 
 (async function () {
@@ -60,7 +67,7 @@ td#officialLinks div {
   // if on main tab, get info with existing doc, otherwise fetch main page
   if (currentURL.pathname.match(pathRegex)) {
     existingShops = getShopLinks(document);
-    ({ officialLinks, otherLinks, allReleases, platforms } = getLangInfo(document, existingShops));
+    ({ officialLinks, otherLinks, allReleases, langInfo } = getLangInfo(document, existingShops));
   } else {
     const vnID = currentURL.pathname.match(vnIdRegex)[1];
     const vnURL = `https://vndb.org/${vnID}`;
@@ -68,7 +75,7 @@ td#officialLinks div {
     existingShops = await fetch(vnURL)
       .then((res) => res.text())
       .then((text) => getShopLinks(new DOMParser().parseFromString(text, 'text/html')));
-    ({ officialLinks, otherLinks, allReleases, platforms } = await fetch(vnURL)
+    ({ officialLinks, otherLinks, allReleases, langInfo } = await fetch(vnURL)
       .then((res) => res.text())
       .then((text) =>
         getLangInfo(new DOMParser().parseFromString(text, 'text/html'), existingShops)
@@ -78,16 +85,8 @@ td#officialLinks div {
   const officialLinksElem = makeHTMLTable(officialLinks, 'Official Links');
   const otherLinksElem = makeHTMLTable(otherLinks, 'Other Links', true);
   const releasesElem = makeHTMLTable(allReleases, 'Release Dates');
-  const platformsElem = document.createElement('tr');
-  platformsElem.innerHTML = `
-<tr>
-  <td>Platforms</td>
-  <td>
-    ${[...platforms].join('')}
-  </td>
-</tr>
-`
-  
+  const platformsElem = makePlatformTable(langInfo);
+
   const tbody = document.querySelector('.mainbox .vndetails tbody');
 
   const firstHeader = tbody.querySelector('tr.nostripe');
@@ -118,10 +117,10 @@ function getShopLinks(document) {
  * @returns {object} allLinks, allReleases
  */
 function getLangInfo(document, existingShops) {
-  const { langInfo, platforms } = extractLangInfo(document);
+  const langInfo = extractLangInfo(document);
   const { officialLinks, otherLinks } = processLinks(langInfo, existingShops);
   const allReleases = processReleases(langInfo);
-  return { officialLinks, otherLinks, allReleases, platforms };
+  return { officialLinks, otherLinks, allReleases, langInfo };
 }
 
 /**
@@ -131,7 +130,6 @@ function getLangInfo(document, existingShops) {
  */
 function extractLangInfo(document) {
   const langInfo = [];
-  const platforms = new Set();
 
   [...document.querySelectorAll('.mainbox.vnreleases > details')].forEach((detail) => {
     // Exclude collapsed languages
@@ -140,7 +138,7 @@ function extractLangInfo(document) {
     }
     const releases = detail.querySelectorAll('tr');
     const lang = detail.querySelector('summary > abbr.lang').outerHTML;
-    const info = { lang, links: {} };
+    const info = { lang, links: {}, platforms: {} };
 
     for (const release of releases) {
       const releaseTitle = release.querySelector('.tc4 a').innerText;
@@ -187,14 +185,52 @@ function extractLangInfo(document) {
       // check if release date is set so that there's an official release, add platform if so
       if (info.release && complete && !mtl) {
         const platform = release.querySelector('.platicon').outerHTML;
-        platforms.add(platform);
+        // add platform, set officiality
+        if (!info.platforms[platform]) {
+          info.platforms[platform] = { official: !unofficial };
+        }
+        // set to official if not already set
+        if (!info.platforms[platform].official && !unofficial) {
+          info.platforms[platform].official = true;
+        }
       }
     }
 
     langInfo.push(info);
   });
 
-  return { langInfo, platforms };
+  return langInfo;
+}
+
+/**
+ * Given a map of links to languages, returns a table element about platform support.
+ * @param {object[]} langInfo
+ */
+function makePlatformTable(langInfo) {
+  let htmlString = '';
+  for (const lang of langInfo) {
+    const flag = lang.lang;
+    htmlString += `<div>${flag}`;
+    for (const [platformHTML, info] of Object.entries(lang.platforms)) {
+      const platformImg = createElementFromHTML(platformHTML);
+      platformImg.title += info.official ? '' : ' (unofficial)';
+      if (!info.official) {
+        platformImg.classList.add('unofficial');
+      }
+      htmlString += platformImg.outerHTML;
+      platformImg.remove();
+    }
+    htmlString += '</div>';
+  }
+  const platformsElem = document.createElement('tr');
+  platformsElem.className = 'platforms';
+  platformsElem.innerHTML = `
+  <td>Platforms</td>
+  <td>
+    ${htmlString}
+  </td>
+  `;
+  return platformsElem;
 }
 
 /**
@@ -340,4 +376,10 @@ function createTableHTML(dataToLangFlags) {
     tableHTML += '<div>' + lang.join('') + data + '</div>';
   }
   return tableHTML;
+}
+
+function createElementFromHTML(htmlString) {
+  const div = document.createElement('div');
+  div.innerHTML = htmlString.trim();
+  return div.firstChild;
 }
