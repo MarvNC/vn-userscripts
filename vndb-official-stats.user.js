@@ -5,7 +5,8 @@
 // @match       https://vndb.org/v*
 // @grant       GM_addElement
 // @grant       GM_addStyle
-// @version     1.34
+// @grant       GM_xmlhttpRequest
+// @version     1.35
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -106,6 +107,8 @@ td#officialLinks div {
   tbody.insertBefore(releasesElem, firstHeader);
   tbody.insertBefore(officialLinksElem, firstHeader);
   tbody.insertBefore(otherLinksElem, firstHeader);
+
+  fetchPrices(otherLinksElem);
 })();
 
 /**
@@ -470,4 +473,119 @@ function createElementFromHTML(htmlString) {
   const div = document.createElement('div');
   div.innerHTML = htmlString.trim();
   return div.firstChild;
+}
+
+/**
+ * Fetches prices for the given links and adds them to the table.
+ * @param {DOM} otherLinksElem
+ */
+async function fetchPrices(otherLinksElem) {
+  const links = [...otherLinksElem.querySelectorAll('a')];
+  for (const linkAnchor of links) {
+    const link = linkAnchor.href;
+    const type = linkAnchor.title;
+    const price = await getPrice(link, type);
+    if (price) {
+      const priceSpan = document.createElement('span');
+      priceSpan.textContent = price;
+      linkAnchor.appendChild(priceSpan);
+    }
+  }
+}
+
+/**
+ * Gets the price for the given link.
+ * @param {string} link
+ * @param {string} type
+ * @returns {string} price
+ * @async
+ */
+async function getPrice(link, type) {
+  switch (type) {
+    case 'Steam':
+      return await getSteamPrice(link);
+    // TODO
+    // case 'DMM':
+    //   return await getDMMPrice(link);
+    // case 'Getchu':
+    //   return await getGetchuPrice(link);
+    // case 'Toranoana':
+    //   return await getToranoanaPrice(link);
+    // case 'Melonbooks.co.jp':
+    //   return await getMelonbooksPrice(link);
+    // case 'Denpasoft':
+    //   return await getDenpasoftPrice(link);
+    default:
+      console.log(`${type} not supported yet`);
+      return null;
+  }
+}
+
+/**
+ * Gets the price for the given Steam link.
+ * @param {string} link
+ * @returns {string} price
+ * @async
+ */
+async function getSteamPrice(link) {
+  const steamId = link.match(/\/app\/(\d+)/)[1];
+  const steamURL = `https://store.steampowered.com/api/appdetails?appids=${steamId}`;
+  try {
+    const response = await getJSONFromURL(steamURL);
+    const data = response[steamId];
+    if (data.success) {
+      const price = data.data.price_overview.final / 100;
+      return `$${price}`;
+    }
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+
+  return null;
+}
+
+/**
+ * Gets the document from a URL using GM_xmlhttpRequest to access other domains
+ * @param {string} url
+ * @returns {Promise<Document>}
+ */
+async function getDocumentFromURL(url) {
+  console.log(`Fetching ${url}...`);
+  return new Promise((resolve, reject) => {
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: url,
+      onload: function (response) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(response.responseText, 'text/html');
+        resolve(doc);
+      },
+      onerror: function (error) {
+        reject(error);
+      },
+    });
+  });
+}
+
+/**
+ * Gets the JSON from a URL using GM_xmlhttpRequest to access other domains
+ * @param {string} url
+ * @returns {Promise<Object>}
+ * @async
+ */
+async function getJSONFromURL(url) {
+  console.log(`Fetching ${url}...`);
+  return new Promise((resolve, reject) => {
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: url,
+      onload: function (response) {
+        resolve(JSON.parse(response.responseText));
+      },
+      onerror: function (error) {
+        reject(error);
+      },
+    });
+  });
 }
