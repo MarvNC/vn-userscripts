@@ -5,7 +5,7 @@
 // @match       https://vndb.org/v*
 // @grant       GM_addElement
 // @grant       GM_addStyle
-// @version     1.29
+// @version     1.30
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -62,24 +62,32 @@ td#officialLinks div {
   const currentURL = new URL(document.URL);
   let allReleases;
   let existingShops;
-  let platforms;
+
+  // get titles
+  const titles = getTitles();
 
   // if on main tab, get info with existing doc, otherwise fetch main page
   if (currentURL.pathname.match(pathRegex)) {
     existingShops = getShopLinks(document);
-    ({ officialLinks, otherLinks, allReleases, langInfo } = getLangInfo(document, existingShops));
+    ({ officialLinks, otherLinks, allReleases, langInfo } = getLangInfo(
+      document,
+      existingShops,
+      titles
+    ));
   } else {
     const vnID = currentURL.pathname.match(vnIdRegex)[1];
     const vnURL = `https://vndb.org/${vnID}`;
     console.log(`Fetching ${vnURL}`);
-    existingShops = await fetch(vnURL)
-      .then((res) => res.text())
-      .then((text) => getShopLinks(new DOMParser().parseFromString(text, 'text/html')));
-    ({ officialLinks, otherLinks, allReleases, langInfo } = await fetch(vnURL)
-      .then((res) => res.text())
-      .then((text) =>
-        getLangInfo(new DOMParser().parseFromString(text, 'text/html'), existingShops)
-      ));
+    let fetchPage = await fetch(vnURL);
+    let fetchText = await fetchDoc.text();
+    let fetchDoc = await new DOMParser().parseFromString(fetchText, 'text/html');
+
+    existingShops = getShopLinks(fetchDoc);
+    ({ officialLinks, otherLinks, allReleases, langInfo } = getLangInfo(
+      fetchDoc,
+      existingShops,
+      titles
+    ));
   }
 
   const officialLinksElem = makeHTMLTable(officialLinks, 'Official Links');
@@ -96,6 +104,32 @@ td#officialLinks div {
   tbody.insertBefore(officialLinksElem, firstHeader);
   tbody.insertBefore(otherLinksElem, firstHeader);
 })();
+
+/**
+ * Gets all the titles on the page
+ * @returns {Set} titles
+ */
+function getTitles() {
+  const titles = new Set();
+  const titlesDetails = document.querySelector('.mainbox .vndetails tbody tr td.titles details');
+  const allTds = [...titlesDetails.querySelectorAll('tr.title td')];
+  for (const td of allTds) {
+    const nodes = [...td.childNodes];
+    for (const node of nodes) {
+      let add = false;
+      if (node.nodeType == Node.TEXT_NODE) {
+        add = true;
+      } else if (node.nodeType == Node.ELEMENT_NODE && node.tagName == 'SPAN') {
+        add = true;
+      }
+      if (add) {
+        titles.add(node.textContent.trim());
+      }
+    }
+  }
+  console.log(titles);
+  return titles;
+}
 
 /**
  * Gets the shop links from the given document and returns them as a set.
@@ -116,9 +150,9 @@ function getShopLinks(document) {
  * @param {Set} existingShops - set of shop links to exclude
  * @returns {object} allLinks, allReleases
  */
-function getLangInfo(document, existingShops) {
+function getLangInfo(document, existingShops, titles) {
   const langInfo = extractLangInfo(document);
-  const { officialLinks, otherLinks } = processLinks(langInfo, existingShops);
+  const { officialLinks, otherLinks } = processLinks(langInfo, existingShops, titles);
   const allReleases = processReleases(langInfo);
   return { officialLinks, otherLinks, allReleases, langInfo };
 }
@@ -239,7 +273,7 @@ function makePlatformTable(langInfo) {
  * @param {Set} existingShops - set of shop links to exclude
  * @returns {object} officialLinks, otherLinks - maps of linkHTML to languages
  */
-function processLinks(langInfo, existingShops) {
+function processLinks(langInfo, existingShops, titles) {
   const officialLinks = new Map();
   const otherLinks = new Map();
   const existingLinks = new Set();
@@ -256,7 +290,21 @@ function processLinks(langInfo, existingShops) {
       }
       existingLinks.add(link);
       const linkType = lang.links[link].type;
-      const linkTitle = lang.links[link].title;
+
+      let linkTitle = lang.links[link].title;
+      // trim edition title by removing main title
+      let titleReplaced = false;
+      let i = 0;
+      while (!titleReplaced && i < titles.size) {
+        const title = [...titles][i];
+        if (linkTitle.includes(title)) {
+          linkTitle = linkTitle.replace(title, '');
+          titleReplaced = true;
+        }
+        i++;
+      }
+      linkTitle = linkTitle.trim();
+      
       const linkPrice = lang.links[link].price;
       try {
         const url = new URL(link);
@@ -286,6 +334,7 @@ function processLinks(langInfo, existingShops) {
             officialLinks.set(linkHTML, [lang.lang]);
           }
         } else {
+          // add title to other links
           linkHTML += `<span class="grayedout" title="${linkTitle}">${linkTitle}</span>`;
           if (otherLinks.has(linkHTML)) {
             otherLinks.get(linkHTML).push(lang.lang);
