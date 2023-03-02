@@ -6,7 +6,7 @@
 // @grant       GM_addElement
 // @grant       GM_addStyle
 // @grant       GM_xmlhttpRequest
-// @version     1.35
+// @version     1.36
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -556,13 +556,25 @@ async function getSteamPrice(link) {
  */
 async function getDMMPrice(link) {
   const doc = await getDocumentFromURL(link);
-  const normalPrice = doc.querySelector('td.normal-price.red');
-  const couponPrice = doc.querySelector('div.coupon-price');
-  if (couponPrice) {
-    return couponPrice.textContent;
-  }
-  if (normalPrice) {
-    return normalPrice.textContent;
+  const urlInfo = new URL(link);
+  // DL edition site
+  if (urlInfo.hostname.startsWith('dlsoft')) {
+    const normalPrice = doc.querySelector('td.normal-price.red');
+    const couponPrice = doc.querySelector('div.coupon-price');
+    if (couponPrice) {
+      return couponPrice.textContent;
+    }
+    if (normalPrice) {
+      return normalPrice.textContent;
+    }
+  } else {
+    // physical purchase
+    const priceElem = doc.querySelector('.txt-price-discount');
+    if (priceElem) {
+      return priceElem.textContent;
+    } else {
+      return outOfStockEmoji;
+    }
   }
   return null;
 }
