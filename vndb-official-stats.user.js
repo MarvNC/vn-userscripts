@@ -5,7 +5,7 @@
 // @match       https://vndb.org/v*
 // @grant       GM_addElement
 // @grant       GM_addStyle
-// @version     1.30
+// @version     1.31
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -32,7 +32,7 @@ const addCSS = /* css */ `
   border-radius: 8px;
   padding: 2px;
 }
-.otherlink .grayedout {
+.scriptLinks .grayedout {
   margin-left: 10px;
 }
 
@@ -111,8 +111,7 @@ td#officialLinks div {
  */
 function getTitles() {
   const titles = new Set();
-  const titlesDetails = document.querySelector('.mainbox .vndetails tbody tr td.titles details');
-  const allTds = [...titlesDetails.querySelectorAll('tr.title td')];
+  const allTds = [...document.querySelectorAll('.mainbox .vndetails tbody tr.title td')];
   for (const td of allTds) {
     const nodes = [...td.childNodes];
     for (const node of nodes) {
