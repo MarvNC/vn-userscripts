@@ -15,7 +15,8 @@ I recommend using [Violentmonkey](https://violentmonkey.github.io/) to install u
 Use the menu command from your userscript manager to adjust the script's settings.
 <details>
   <summary>Reveal menu command options</summary>
-  ![menu command option](images/vndbLinksMenuCommand.png)
+
+  ![menu command option]()
 </details>
 
 A userscript that adds:
