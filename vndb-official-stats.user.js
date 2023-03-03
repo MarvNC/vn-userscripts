@@ -10,7 +10,7 @@
 // @grant       GM_getValue
 // @grant       GM_setValue
 // @grant       GM_registerMenuCommand
-// @version     1.41
+// @version     1.42
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -344,6 +344,10 @@ function makePlatformTable(langInfo) {
   let htmlString = '';
   for (const lang of langInfo) {
     const platforms = Object.entries(lang.platforms);
+    // skip languages without any official platform releases
+    if (platforms.length === 0) {
+      continue;
+    }
     const released = platforms.filter(([, info]) => info.released);
     const unreleased = platforms.filter(([, info]) => !info.released);
 
