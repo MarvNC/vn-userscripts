@@ -10,7 +10,7 @@
 // @grant       GM_getValue
 // @grant       GM_setValue
 // @grant       GM_registerMenuCommand
-// @version     1.42
+// @version     1.43
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -88,13 +88,21 @@ td#officialLinks div {
         type: 'checkbox',
         default: true,
       },
+      officialLinksBeforeCollapse: {
+        label: 'Amount of official links to display by default before collapsing:',
+        type: 'int',
+        title: 'Enter a number between 1 and 999999',
+        min: 1,
+        max: 999999,
+        default: 999999,
+      },
       showOtherLinks: {
         label: 'Show other links',
         type: 'checkbox',
         default: true,
       },
-      linksBeforeCollapse: {
-        label: 'Amount of other links to display by default:',
+      otherLinksBeforeCollapse: {
+        label: 'Amount of other links to display by default before collapsing:',
         type: 'int',
         title: 'Enter a number between 1 and 999999',
         min: 1,
@@ -163,11 +171,17 @@ td#officialLinks div {
     tbody.insertBefore(releasesElem, firstHeader);
   }
   if (GM_config.get('showOfficialLinks')) {
-    const officialLinksElem = makeHTMLTable(officialLinks, 'Official Links');
+    const officialLinksElem = makeHTMLTable(officialLinks, 'Official Links', {
+      collapsible: true,
+      linksBeforeCollapse: GM_config.get('officialLinksBeforeCollapse'),
+    });
     tbody.insertBefore(officialLinksElem, firstHeader);
   }
   if (GM_config.get('showOtherLinks')) {
-    const otherLinksElem = makeHTMLTable(otherLinks, 'Other Links', true);
+    const otherLinksElem = makeHTMLTable(otherLinks, 'Other Links', {
+      collapsible: true,
+      linksBeforeCollapse: GM_config.get('otherLinksBeforeCollapse'),
+    });
     tbody.insertBefore(otherLinksElem, firstHeader);
     fetchPrices(otherLinksElem);
   }
@@ -482,8 +496,9 @@ function processReleases(langInfo) {
  * Creates an HTML table from the given data. If collapsible is true, the table will be collapsed by default but include linksBeforeCollapse links in the summary.
  * @param {object} dataToLangFlags Map of links or data as the key mapped to values of arrays of languages
  */
-function makeHTMLTable(dataToLangFlags, title, collapsible = false) {
-  const linksBeforeCollapse = GM_config.get('linksBeforeCollapse');
+function makeHTMLTable(dataToLangFlags, title, options = { collapsible: false }) {
+  const collapsible = options.collapsible;
+  const linksBeforeCollapse = options.linksBeforeCollapse;
   if (!collapsible || dataToLangFlags.size <= linksBeforeCollapse) {
     let tableHTML = createTableHTML(dataToLangFlags);
 
