@@ -16,7 +16,7 @@ Use the menu command from your userscript manager to adjust the script's setting
 <details>
   <summary>Reveal menu command options</summary>
 
-  ![menu command option]()
+  ![menu command option](images/vndbLinksMenuCommand.png)
 </details>
 
 A userscript that adds:
