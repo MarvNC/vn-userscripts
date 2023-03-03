@@ -6,7 +6,11 @@
 // @grant       GM_addElement
 // @grant       GM_addStyle
 // @grant       GM_xmlhttpRequest
-// @version     1.39
+// @require     https://openuserjs.org/src/libs/sizzle/GM_config.js
+// @grant       GM_getValue
+// @grant       GM_setValue
+// @grant       GM_registerMenuCommand
+// @version     1.40
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -17,8 +21,6 @@ const 税込みRegex = /[\(（]税込([^\)]+)[\)）]/;
 const unreleasedEmoji = '🚧';
 const outOfStockEmoji = '❌';
 const freeEmoji = '🎁';
-
-const linksBeforeCollapse = 5;
 
 const addCSS = (documentBodyComputedStyle) => /* css */ `
 .otherlink a {
@@ -67,6 +69,56 @@ td#officialLinks div {
 (async function () {
   GM_addStyle(addCSS(getComputedStyle(document.body)));
 
+  GM_config.init({
+    id: 'vndb-info-adder-config',
+    title: 'VNDB Official Links and Release Dates',
+    fields: {
+      showPlatforms: {
+        label: 'Show platforms',
+        type: 'checkbox',
+        default: true,
+      },
+      showReleaseDates: {
+        label: 'Show release dates',
+        type: 'checkbox',
+        default: true,
+      },
+      showOfficialLinks: {
+        label: 'Show official links',
+        type: 'checkbox',
+        default: true,
+      },
+      showOtherLinks: {
+        label: 'Show other links',
+        type: 'checkbox',
+        default: true,
+      },
+      linksBeforeCollapse: {
+        label: 'Amount of other links to display by default:',
+        type: 'int',
+        title: 'Enter a number between 1 and 999999',
+        min: 1,
+        max: 999999,
+        default: 5,
+      },
+    },
+  });
+
+  GM_registerMenuCommand('Configure script', () => {
+    GM_config.open();
+  });
+
+  // close config when clicking outside of it
+  document.body.addEventListener('click', (e) => {
+    if (GM_config.isOpen) {
+      GM_config.close();
+    }
+  });
+  // close config on save
+  GM_config.onSave = () => {
+    GM_config.close();
+  };
+
   const currentURL = new URL(document.URL);
   let allReleases;
   let existingShops;
@@ -98,21 +150,27 @@ td#officialLinks div {
     ));
   }
 
-  const officialLinksElem = makeHTMLTable(officialLinks, 'Official Links');
-  const otherLinksElem = makeHTMLTable(otherLinks, 'Other Links', true);
-  const releasesElem = makeHTMLTable(allReleases, 'Release Dates');
-  const platformsElem = makePlatformTable(langInfo);
-
   const tbody = document.querySelector('.mainbox .vndetails tbody');
 
   const firstHeader = tbody.querySelector('tr.nostripe');
 
-  tbody.insertBefore(platformsElem, firstHeader);
-  tbody.insertBefore(releasesElem, firstHeader);
-  tbody.insertBefore(officialLinksElem, firstHeader);
-  tbody.insertBefore(otherLinksElem, firstHeader);
-
-  fetchPrices(otherLinksElem);
+  if (GM_config.get('showPlatforms')) {
+    const platformsElem = makePlatformTable(langInfo);
+    tbody.insertBefore(platformsElem, firstHeader);
+  }
+  if (GM_config.get('showReleaseDates')) {
+    const releasesElem = makeHTMLTable(allReleases, 'Release Dates');
+    tbody.insertBefore(releasesElem, firstHeader);
+  }
+  if (GM_config.get('showOfficialLinks')) {
+    const officialLinksElem = makeHTMLTable(officialLinks, 'Official Links');
+    tbody.insertBefore(officialLinksElem, firstHeader);
+  }
+  if (GM_config.get('showOtherLinks')) {
+    const otherLinksElem = makeHTMLTable(otherLinks, 'Other Links', true);
+    tbody.insertBefore(otherLinksElem, firstHeader);
+    fetchPrices(otherLinksElem);
+  }
 })();
 
 /**
@@ -421,6 +479,7 @@ function processReleases(langInfo) {
  * @param {object} dataToLangFlags Map of links or data as the key mapped to values of arrays of languages
  */
 function makeHTMLTable(dataToLangFlags, title, collapsible = false) {
+  const linksBeforeCollapse = GM_config.get('linksBeforeCollapse');
   if (!collapsible || dataToLangFlags.size <= linksBeforeCollapse) {
     let tableHTML = createTableHTML(dataToLangFlags);
 
