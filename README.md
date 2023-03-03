@@ -12,6 +12,12 @@ I recommend using [Violentmonkey](https://violentmonkey.github.io/) to install u
 
 **[Install](https://github.com/MarvNC/vn-userscripts/raw/master/vndb-official-stats.user.js)**
 
+Use the menu command from your userscript manager to adjust the script's settings.
+<details>
+  <summary>Reveal menu command options</summary>
+  ![menu command option](images/vndbLinksMenuCommand.png)
+</details>
+
 A userscript that adds:
 
 - Platform support information by language, with icons greyed out for unofficial releases and a 🚧 symbol to indicate that a release has not yet been released.
