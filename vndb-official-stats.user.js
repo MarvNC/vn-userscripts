@@ -10,7 +10,7 @@
 // @grant       GM_getValue
 // @grant       GM_setValue
 // @grant       GM_registerMenuCommand
-// @version     1.40
+// @version     1.41
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -99,7 +99,7 @@ td#officialLinks div {
         title: 'Enter a number between 1 and 999999',
         min: 1,
         max: 999999,
-        default: 5,
+        default: 4,
       },
     },
   });
