@@ -10,7 +10,7 @@
 // @grant       GM_getValue
 // @grant       GM_setValue
 // @grant       GM_registerMenuCommand
-// @version     1.43
+// @version     1.44
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -22,12 +22,13 @@ const unreleasedEmoji = '🚧';
 const outOfStockEmoji = '❌';
 const freeEmoji = '🎁';
 
-const addCSS = (documentBodyComputedStyle) => /* css */ `
+(async function () {
+  GM_addStyle(/* css */ `
 .otherlink a {
   display: flex;
 }
 .scriptLinks a span {
-  color: ${documentBodyComputedStyle.color};
+  color: ${getComputedStyle(document.body).color};
   margin-left: 10px;
 }
 .otherlink div {
@@ -64,13 +65,11 @@ td#officialLinks div {
 .platforms img.unofficial {
   -webkit-filter: grayscale(100%);
 }
-`;
+`);
 
-(async function () {
-  GM_addStyle(addCSS(getComputedStyle(document.body)));
-
+  const configID = 'vndb-info-adder-config';
   GM_config.init({
-    id: 'vndb-info-adder-config',
+    id: configID,
     title: 'VNDB Official Links and Release Dates',
     fields: {
       showPlatforms: {
@@ -110,6 +109,45 @@ td#officialLinks div {
         default: 4,
       },
     },
+    css: `
+#${configID} {
+  color: ${getComputedStyle(document.body).color};
+  background: ${getComputedStyle(document.querySelector('div.mainbox')).backgroundColor};
+}
+#${configID}_wrapper {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+#${configID} .config_header {
+  color: ${getComputedStyle(document.querySelector('.mainbox h1')).color};
+}
+#${configID} input[type=text] {
+  color: ${getComputedStyle(document.querySelector('input.text')).color};
+  background: ${getComputedStyle(document.querySelector('input.text')).backgroundColor};
+  border: ${getComputedStyle(document.querySelector('input.text')).border};
+}
+#${configID} .saveclose_buttons {
+  display: none;
+}
+`,
+    events: {
+      save: function () {
+        console.log('saved');
+        // GM_config.close();
+      },
+      open: function (doc, window, frame) {
+        // add autosave to all checkboxes and inputs
+        const inputs = doc.querySelectorAll('input');
+        inputs.forEach((input) => {
+          input.addEventListener('input', () => {
+            GM_config.save();
+          });
+        });
+      },
+      reset: function () {
+        GM_config.save();
+      },
+    },
   });
 
   GM_registerMenuCommand('Configure script', () => {
@@ -119,13 +157,10 @@ td#officialLinks div {
   // close config when clicking outside of it
   document.body.addEventListener('click', (e) => {
     if (GM_config.isOpen) {
+      GM_config.save();
       GM_config.close();
     }
   });
-  // close config on save
-  GM_config.onSave = () => {
-    GM_config.close();
-  };
 
   const currentURL = new URL(document.URL);
   let allReleases;
