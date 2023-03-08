@@ -10,7 +10,7 @@
 // @grant       GM_getValue
 // @grant       GM_setValue
 // @grant       GM_registerMenuCommand
-// @version     1.44
+// @version     1.4.5
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -182,7 +182,7 @@ td#officialLinks div {
     const vnURL = `https://vndb.org/${vnID}`;
     console.log(`Fetching ${vnURL}`);
     let fetchPage = await fetch(vnURL);
-    let fetchText = await fetchDoc.text();
+    let fetchText = await fetchPage.text();
     let fetchDoc = await new DOMParser().parseFromString(fetchText, 'text/html');
 
     existingShops = getShopLinks(fetchDoc);
