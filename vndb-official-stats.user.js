@@ -10,7 +10,8 @@
 // @grant       GM_getValue
 // @grant       GM_setValue
 // @grant       GM_registerMenuCommand
-// @version     1.4.5
+// @connect     *
+// @version     1.4.6
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -18,16 +19,16 @@
 const pathRegex = /^\/v(\d+)$/;
 const vnIdRegex = /^\/(v\d+)/;
 const 税込みRegex = /[\(（]税込([^\)]+)[\)）]/;
-const unreleasedEmoji = '🚧';
-const outOfStockEmoji = '❌';
-const freeEmoji = '🎁';
+const unreleasedEmoji = '<span title="Unreleased">🚧</span>';
+const outOfStockEmoji = '<span title="Out of stock">❌</span>';
+const freeEmoji = '<span title="Free">🎁</span>';
 
 (async function () {
   GM_addStyle(/* css */ `
 .otherlink a {
   display: flex;
 }
-.scriptLinks a span {
+.scriptLinks a span.price {
   color: ${getComputedStyle(document.body).color};
   margin-left: 10px;
 }
@@ -604,7 +605,8 @@ async function fetchPrices(otherLinksElem) {
     getPrice(link, type).then((price) => {
       if (price) {
         const priceSpan = document.createElement('span');
-        priceSpan.textContent = price;
+        priceSpan.className = 'price';
+        priceSpan.innerHTML = price;
         linkAnchor.appendChild(priceSpan);
       } else {
         console.log(`No price found for ${link}`);
@@ -644,13 +646,15 @@ async function getPrice(link, type) {
 }
 
 /**
- * Gets the price for the given Steam link.
+ * Gets the price for the given Steam link. Adds the price in USD if the user is not in the US.
  * @param {string} link
  * @returns {string} price
  */
-async function getSteamPrice(link) {
+async function getSteamPrice(link, usa = false) {
   const steamId = link.match(/\/app\/(\d+)/)[1];
-  const steamURL = `https://store.steampowered.com/api/appdetails?appids=${steamId}`;
+  const steamURL = `https://store.steampowered.com/api/appdetails?appids=${steamId}${
+    usa ? '&cc=us&anonymous=true' : ''
+  }`;
   try {
     const response = await getJSONFromURL(steamURL);
     const data = response[steamId];
@@ -658,8 +662,14 @@ async function getSteamPrice(link) {
       if (data.data.is_free) {
         return freeEmoji;
       }
-      const price = data.data.price_overview.final / 100;
-      return `$${price}`;
+      if (data.data.price_overview.currency === 'USD') {
+        usa = true;
+      }
+      if (usa) {
+        return data.data.price_overview.final_formatted;
+      } else {
+        return data.data.price_overview.final_formatted + ' (' + getSteamPrice(link, true) + ')';
+      }
     }
   } catch (error) {
     console.log(error);
