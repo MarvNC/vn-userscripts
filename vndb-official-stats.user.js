@@ -11,7 +11,7 @@
 // @grant       GM_setValue
 // @grant       GM_registerMenuCommand
 // @connect     *
-// @version     1.4.6
+// @version     1.4.7
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -470,6 +470,7 @@ function processLinks(langInfo, existingShops, titles) {
         let faviconURL = 'https://www.google.com/s2/favicons?sz=16&domain=' + url;
         if (linkType === 'Official website') {
           displayLink = url.hostname + url.pathname + url.search + url.hash;
+          displayLink = decodeURIComponent(displayLink);
           displayLink = displayLink.replace(/\/$/, '');
           displayLink = displayLink.replace(/^www./, '');
           if (displayLink.length > 53) {
