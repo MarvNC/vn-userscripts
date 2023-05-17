@@ -3,7 +3,7 @@
 // @homepageURL https://github.com/MarvNC/vn-userscripts
 // @match       https://vndb.org/s*
 // @match       https://vndb.org/p*
-// @version     1.11
+// @version     1.2.0
 // @author      Marv
 // @description Displays known VNs at a glance on staff and company pages.
 // @grant       GM_getValue
@@ -31,7 +31,7 @@ const staffPageTableHTML = /* html */ `
 <div id="onlist">
   <h1 class="boxtitle"></h1>
 
-  <div class="mainbox browse staffroles">
+  <article class="browse staffroles">
     ${labelFiltersHTML}
     <table class="stripe">
       <thead>
@@ -47,12 +47,12 @@ const staffPageTableHTML = /* html */ `
       <tbody>
       </tbody>
     </table>
-  </div>
+  </article>
 </div>
 `;
 
 const prodPageTableHTML = /* html */ `
-<div id="onlist">
+<article id="onlist">
   <div class="mainbox">
     <h1></h1>
     ${labelFiltersHTML}
@@ -62,34 +62,34 @@ const prodPageTableHTML = /* html */ `
       </tbody>
     </table>
   </div>
-</div>
+</article>
 `;
 
 const vnPageHTML = /* html */ `
-<div class="mainbox">
+<article class="mainbox">
   <h1></h1>
   ${labelFiltersHTML}
   <br>
   <ul class="prodvns">
   </ul>
-</div>`;
+</article>`;
 
 const type = {
   staff: {
     releaseElem: 'tr',
-    insertAfterSelector: '.mainbox.staffpage',
+    insertAfterSelector: '.staffpage',
     tableHTML: staffPageTableHTML,
     insertVNsSelector: '.staffroles tbody',
   },
   prodReleases: {
     releaseElem: 'tr',
-    insertAfterSelector: '#maincontent > .mainbox',
+    insertAfterSelector: 'main > article',
     tableHTML: prodPageTableHTML,
     insertVNsSelector: '.releases tbody',
   },
   prodVNs: {
     releaseElem: 'li',
-    insertAfterSelector: '#maincontent > .mainbox',
+    insertAfterSelector: 'main > article',
     tableHTML: vnPageHTML,
     insertVNsSelector: 'ul.prodvns',
   },
@@ -153,9 +153,11 @@ function createOnListTable(onList, listLabels, currentPageType) {
       updateTable(onListTable, onList);
     });
   }
-  // remove last divider
-  listLabelsDiv.removeChild(listLabelsDiv.lastChild);
-  secondListLabelsDiv.removeChild(secondListLabelsDiv.lastChild);
+  // remove last divider that may not exist
+  try {
+    listLabelsDiv.removeChild(listLabelsDiv.lastChild);
+    secondListLabelsDiv.removeChild(secondListLabelsDiv.lastChild);
+  } catch (error) {}
 
   const tbody = onListTable.querySelector(currentPageType.insertVNsSelector);
   for (const vn of onList) {
@@ -191,7 +193,7 @@ function updateTable(table, onList) {
  * @returns {*} An array of VNs on the logged in user's list.
  */
 function getPageOnList(currentPageType) {
-  const onListIcons = [...document.getElementsByClassName('liststatus_icon')].filter(
+  const onListIcons = [...document.querySelectorAll('.ulist-widget-icon > abbr')].filter(
     (elem) => elem.title !== 'Add to list'
   );
 
