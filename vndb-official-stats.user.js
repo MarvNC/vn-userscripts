@@ -11,7 +11,7 @@
 // @grant       GM_setValue
 // @grant       GM_registerMenuCommand
 // @connect     *
-// @version     1.4.7
+// @version     1.5.0
 // @author      Marv
 // @description Adds links and dates to the VNDB infobox.
 // ==/UserScript==
@@ -63,7 +63,7 @@ td#officialLinks div {
 .platforms .lang {
   margin-right: 5px;
 }
-.platforms img.unofficial {
+.platforms abbr.unofficial {
   -webkit-filter: grayscale(100%);
 }
 `);
@@ -113,14 +113,14 @@ td#officialLinks div {
     css: `
 #${configID} {
   color: ${getComputedStyle(document.body).color};
-  background: ${getComputedStyle(document.querySelector('div.mainbox')).backgroundColor};
+  background: ${getComputedStyle(document.querySelector('main')).backgroundColor};
 }
 #${configID}_wrapper {
   max-width: 1000px;
   margin: 0 auto;
 }
 #${configID} .config_header {
-  color: ${getComputedStyle(document.querySelector('.mainbox h1')).color};
+  color: ${getComputedStyle(document.querySelector('main h1')).color};
 }
 #${configID} input[type=text] {
   color: ${getComputedStyle(document.querySelector('input.text')).color};
@@ -194,7 +194,7 @@ td#officialLinks div {
     ));
   }
 
-  const tbody = document.querySelector('.mainbox .vndetails tbody');
+  const tbody = document.querySelector('main .vndetails tbody');
 
   const firstHeader = tbody.querySelector('tr.nostripe');
 
@@ -229,7 +229,7 @@ td#officialLinks div {
  */
 function getTitles() {
   const titles = new Set();
-  const allTds = [...document.querySelectorAll('.mainbox .vndetails tbody tr.title td')];
+  const allTds = [...document.querySelectorAll('main .vndetails tbody tr.title td')];
   for (const td of allTds) {
     const nodes = [...td.childNodes];
     for (const node of nodes) {
@@ -282,26 +282,26 @@ function getLangInfo(document, existingShops, titles) {
 function extractLangInfo(document) {
   const langInfo = [];
 
-  [...document.querySelectorAll('.mainbox.vnreleases > details')].forEach((detail) => {
+  [...document.querySelectorAll('article.vnreleases > details')].forEach((detail) => {
     // Exclude collapsed languages
     if (detail.open == false) {
       return;
     }
     const releases = detail.querySelectorAll('tr');
-    const lang = detail.querySelector('summary > abbr.lang').outerHTML;
+    const lang = detail.querySelector('summary > abbr[class*=icon-lang]').outerHTML;
     const info = { lang, links: {}, platforms: {} };
 
     for (const release of releases) {
       const releaseTitle = release.querySelector('.tc4 a').innerText;
       // ignore unofficial/mtl/patches
-      const grayedout = release.querySelector('b.grayedout')?.textContent ?? '';
+      const grayedout = release.querySelector('small')?.textContent ?? '';
       const unofficial = !!grayedout.match(/unofficial/);
       const patch = !!grayedout.match(/patch/);
       const mtl =
         grayedout.match(/machine translation/) ||
         release.querySelector('tr')?.classList?.contains('mtl') ||
         release?.classList?.contains('mtl');
-      const complete = !!release.querySelector(`abbr.icons[title="complete"]`);
+      const complete = !!release.querySelector(`abbr[title="complete"]`);
       if (!unofficial && !mtl) {
         // get official link first for the case where there is only one link
         const officialLinkIcon = release.querySelector('abbr.external[title="Official website"]');
@@ -339,7 +339,7 @@ function extractLangInfo(document) {
       }
       // check if release date is set so that there's an official release, add platform if so
       if (info.release && complete && !mtl) {
-        const platform = release.querySelector('.platicon').outerHTML;
+        const platform = release.querySelector('abbr[class*=icon-plat]').outerHTML;
         const released = !release.querySelector('.future');
         // add platform, set officiality
         if (!info.platforms[platform]) {
