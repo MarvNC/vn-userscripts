@@ -2,9 +2,9 @@
 // @name        Seiya Saiga Spoilers
 // @namespace   Marv
 // @homepageURL https://github.com/MarvNC/vn-userscripts
-// @match       https://seiya-saiga.com/game/*
+// @match       https://*.seiya-saiga.com/game/*
 // @grant       GM_addStyle
-// @version     1.0
+// @version     1.1
 // @author      Marv
 // @description Seiya Saiga Spoilers
 // @run-at      document-load
